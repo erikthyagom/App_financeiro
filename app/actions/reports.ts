@@ -1,18 +1,25 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
+import { getCurrentUserId } from "./auth";
 
 export async function getReportsData(year: number) {
+  const userId = await getCurrentUserId();
+  if (!userId) return {
+    monthlyComparison: { incomes: [], expenses: [] },
+    expensesByCategory: { labels: [], data: [] }
+  };
+
   // Obter receitas e despesas do ano
   const startDate = new Date(year, 0, 1);
   const endDate = new Date(year, 11, 31, 23, 59, 59, 999);
 
   const [incomes, expenses] = await Promise.all([
     prisma.income.findMany({
-      where: { date: { gte: startDate, lte: endDate } },
+      where: { userId, date: { gte: startDate, lte: endDate } },
     }),
     prisma.expense.findMany({
-      where: { date: { gte: startDate, lte: endDate } },
+      where: { userId, date: { gte: startDate, lte: endDate } },
       include: { category: true },
     }),
   ]);

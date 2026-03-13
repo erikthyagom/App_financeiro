@@ -2,17 +2,25 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { getCurrentUserId } from "./auth";
 
 export async function getCreditCards() {
+  const userId = await getCurrentUserId();
+  if (!userId) return [];
+
   return await prisma.creditCard.findMany({
+    where: { userId },
     orderBy: { name: "asc" },
   });
 }
 
 export async function createCreditCard(data: { name: string; limit: number; closingDay: number; dueDay: number }) {
+  const userId = await getCurrentUserId();
+  if (!userId) return { success: false, error: "Não autorizado" };
+
   try {
     await prisma.creditCard.create({
-      data,
+      data: { ...data, userId },
     });
     revalidatePath("/cartoes");
     return { success: true };
@@ -22,9 +30,12 @@ export async function createCreditCard(data: { name: string; limit: number; clos
 }
 
 export async function updateCreditCard(id: string, data: { name: string; limit: number; closingDay: number; dueDay: number }) {
+  const userId = await getCurrentUserId();
+  if (!userId) return { success: false, error: "Não autorizado" };
+
   try {
     await prisma.creditCard.update({
-      where: { id },
+      where: { id, userId },
       data,
     });
     revalidatePath("/cartoes");
@@ -35,9 +46,12 @@ export async function updateCreditCard(id: string, data: { name: string; limit: 
 }
 
 export async function deleteCreditCard(id: string) {
+  const userId = await getCurrentUserId();
+  if (!userId) return { success: false, error: "Não autorizado" };
+
   try {
     await prisma.creditCard.delete({
-      where: { id },
+      where: { id, userId },
     });
     revalidatePath("/cartoes");
     return { success: true };

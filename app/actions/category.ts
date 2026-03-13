@@ -2,17 +2,25 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { getCurrentUserId } from "./auth";
 
 export async function getCategories() {
+  const userId = await getCurrentUserId();
+  if (!userId) return [];
+
   return await prisma.category.findMany({
+    where: { userId },
     orderBy: { name: "asc" },
   });
 }
 
 export async function createCategory(name: string) {
+  const userId = await getCurrentUserId();
+  if (!userId) return { success: false, error: "Não autorizado" };
+
   try {
     await prisma.category.create({
-      data: { name },
+      data: { name, userId },
     });
     revalidatePath("/categorias");
     return { success: true };
@@ -22,9 +30,12 @@ export async function createCategory(name: string) {
 }
 
 export async function updateCategory(id: string, name: string) {
+  const userId = await getCurrentUserId();
+  if (!userId) return { success: false, error: "Não autorizado" };
+
   try {
     await prisma.category.update({
-      where: { id },
+      where: { id, userId },
       data: { name },
     });
     revalidatePath("/categorias");
@@ -35,9 +46,12 @@ export async function updateCategory(id: string, name: string) {
 }
 
 export async function deleteCategory(id: string) {
+  const userId = await getCurrentUserId();
+  if (!userId) return { success: false, error: "Não autorizado" };
+
   try {
     await prisma.category.delete({
-      where: { id },
+      where: { id, userId },
     });
     revalidatePath("/categorias");
     return { success: true };

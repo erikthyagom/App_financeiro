@@ -2,16 +2,26 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { getCurrentUserId } from "./auth";
 
 export async function getAccounts() {
+  const userId = await getCurrentUserId();
+  if (!userId) return [];
+
   return await prisma.account.findMany({
+    where: { userId },
     orderBy: { name: "asc" },
   });
 }
 
 export async function createAccount(data: { name: string; balance: number }) {
+  const userId = await getCurrentUserId();
+  if (!userId) return { success: false, error: "Não autorizado" };
+
   try {
-    await prisma.account.create({ data });
+    await prisma.account.create({ 
+      data: { ...data, userId } 
+    });
     revalidatePath("/contas");
     return { success: true };
   } catch (error) {
@@ -20,9 +30,12 @@ export async function createAccount(data: { name: string; balance: number }) {
 }
 
 export async function updateAccount(id: string, data: { name: string; balance: number }) {
+  const userId = await getCurrentUserId();
+  if (!userId) return { success: false, error: "Não autorizado" };
+
   try {
     await prisma.account.update({
-      where: { id },
+      where: { id, userId },
       data,
     });
     revalidatePath("/contas");
@@ -33,8 +46,13 @@ export async function updateAccount(id: string, data: { name: string; balance: n
 }
 
 export async function deleteAccount(id: string) {
+  const userId = await getCurrentUserId();
+  if (!userId) return { success: false, error: "Não autorizado" };
+
   try {
-    await prisma.account.delete({ where: { id } });
+    await prisma.account.delete({ 
+      where: { id, userId } 
+    });
     revalidatePath("/contas");
     return { success: true };
   } catch (error) {

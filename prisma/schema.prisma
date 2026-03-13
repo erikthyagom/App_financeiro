@@ -8,12 +8,14 @@ datasource db {
 }
 
 model Category {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   name      String
+  userId    String
+  user      User      @relation(fields: [userId], references: [id])
   incomes   Income[]
   expenses  Expense[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 }
 
 model CreditCard {
@@ -22,23 +24,27 @@ model CreditCard {
   limit       Float
   closingDay  Int
   dueDay      Int
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
   expenses    Expense[]
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 }
 
 model Income {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   description String
   amount      Float
   date        DateTime
   note        String?
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
   categoryId  String
-  category    Category @relation(fields: [categoryId], references: [id])
+  category    Category  @relation(fields: [categoryId], references: [id])
   accountId   String?
-  account     Account? @relation(fields: [accountId], references: [id])
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  account     Account?  @relation(fields: [accountId], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 }
 
 model Expense {
@@ -48,6 +54,8 @@ model Expense {
   date          DateTime
   paymentMethod String      // e.g., 'CASH', 'DEBIT', 'CREDIT'
   note          String?
+  userId        String
+  user          User        @relation(fields: [userId], references: [id])
   categoryId    String
   category      Category    @relation(fields: [categoryId], references: [id])
   creditCardId  String?
@@ -62,6 +70,8 @@ model Account {
   id          String    @id @default(cuid())
   name        String
   balance     Float
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
   incomes     Income[]
   expenses    Expense[]
   createdAt   DateTime  @default(now())
@@ -73,15 +83,23 @@ model Goal {
   name        String
   targetAmount Float
   currentAmount Float   @default(0)
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 }
 
 model User {
-  id        String   @id @default(cuid())
-  name      String
-  email     String   @unique
-  password  String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String       @id @default(cuid())
+  name        String
+  email       String       @unique
+  password    String
+  categories  Category[]
+  creditCards CreditCard[]
+  incomes     Income[]
+  expenses    Expense[]
+  accounts    Account[]
+  goals       Goal[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
 }

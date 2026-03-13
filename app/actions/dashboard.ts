@@ -1,8 +1,16 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
+import { getCurrentUserId } from "./auth";
 
 export async function getDashboardData(month?: number, year?: number) {
+  const userId = await getCurrentUserId();
+  if (!userId) return {
+    totalIncomes: 0, totalExpenses: 0, balance: 0,
+    chartData: { labels: [], data: [] },
+    accounts: [], creditCards: [], goals: []
+  };
+
   const currentDate = new Date();
   const targetMonth = month !== undefined ? month : currentDate.getMonth(); // 0-based
   const targetYear = year !== undefined ? year : currentDate.getFullYear();
@@ -13,17 +21,18 @@ export async function getDashboardData(month?: number, year?: number) {
 
   const [incomes, expenses, accounts, creditCards, goals] = await Promise.all([
     prisma.income.findMany({
-      where: { date: { gte: startDate, lte: endDate } },
+      where: { userId, date: { gte: startDate, lte: endDate } },
     }),
     prisma.expense.findMany({
-      where: { date: { gte: startDate, lte: endDate } },
+      where: { userId, date: { gte: startDate, lte: endDate } },
       include: { category: true },
     }),
-    prisma.account.findMany(),
+    prisma.account.findMany({ where: { userId } }),
     prisma.creditCard.findMany({
+      where: { userId },
       include: { expenses: { where: { date: { gte: startDate, lte: endDate } } } }
     }),
-    prisma.goal.findMany()
+    prisma.goal.findMany({ where: { userId } })
   ]);
 
   const totalIncomes = incomes.reduce((acc: number, curr: any) => acc + curr.amount, 0);
