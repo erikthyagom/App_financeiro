@@ -119,7 +119,7 @@ export default function DashboardClient({ initialData, initialMonth, initialYear
       </div>
 
       {/* Top Summary Cards */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "1.5rem", marginBottom: "2rem" }}>
+      <div className="summary-grid">
         
         {/* Card Saldo */}
         <div className="card" style={{ position: "relative", overflow: "hidden", display: "flex", flexDirection: "column", justifyContent: "space-between", minHeight: "140px" }}>
@@ -163,7 +163,7 @@ export default function DashboardClient({ initialData, initialMonth, initialYear
       </div>
 
       {/* Bottom Layout - 4 Columns */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "1.5rem" }}>
+      <div className="dashboard-grid">
         
         {/* Gastos por Categoria */}
         <div className="card" style={{ display: "flex", flexDirection: "column" }}>

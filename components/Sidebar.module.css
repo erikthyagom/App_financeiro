@@ -74,9 +74,36 @@
 }
 
 /* Responsive */
+.mobileMenuButton {
+  display: none;
+  position: fixed;
+  top: 1rem;
+  left: 1rem;
+  z-index: 60;
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.5rem;
+  color: var(--foreground);
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
 @media (max-width: 768px) {
+  .mobileMenuButton {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
   .sidebar {
     transform: translateX(-100%);
     transition: transform 0.3s ease;
+    width: 280px;
+    max-width: 80vw;
+  }
+
+  .sidebar.open {
+    transform: translateX(0);
   }
 }
