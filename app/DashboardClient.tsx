@@ -3,11 +3,12 @@
 import { useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ArrowUpCircle, ArrowDownCircle, Wallet, PieChart, Info, CreditCard, Target, Plus } from "lucide-react";
+import { ArrowUpCircle, ArrowDownCircle, Wallet, PieChart, Info, CreditCard, Target, Plus, X } from "lucide-react";
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
 import { Doughnut } from "react-chartjs-2";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { createGoal } from "@/app/actions/goal";
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
@@ -42,11 +43,32 @@ export default function DashboardClient({ initialData, initialMonth, initialYear
   const router = useRouter();
   const [month, setMonth] = useState(initialMonth);
   const [year, setYear] = useState(initialYear);
+  const [showGoalModal, setShowGoalModal] = useState(false);
+  const [goalForm, setGoalForm] = useState({ name: "", targetAmount: "", currentAmount: "" });
+  const [goalLoading, setGoalLoading] = useState(false);
 
   const handleFilterChange = (m: number, y: number) => {
     setMonth(m);
     setYear(y);
     router.push(`/?month=${m}&year=${y}`);
+  };
+
+  const handleCreateGoal = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setGoalLoading(true);
+    const result = await createGoal({
+      name: goalForm.name,
+      targetAmount: parseFloat(goalForm.targetAmount.replace(",", ".")),
+      currentAmount: parseFloat(goalForm.currentAmount.replace(",", ".") || "0"),
+    });
+    setGoalLoading(false);
+    if (result.success) {
+      setShowGoalModal(false);
+      setGoalForm({ name: "", targetAmount: "", currentAmount: "" });
+      router.refresh();
+    } else {
+      alert(result.error);
+    }
   };
 
   const chartColors = generateColors(initialData.chartData.labels.length);
@@ -278,13 +300,19 @@ export default function DashboardClient({ initialData, initialMonth, initialYear
               <Target size={18} color="var(--primary)" />
               <h3 style={{ fontSize: "1.1rem", fontWeight: 600 }}>Metas Financeiras</h3>
             </div>
-            <button style={{ background: "none", border: "none", fontSize: "0.75rem", color: "var(--primary)", fontWeight: 600, textTransform: "uppercase", cursor: "pointer" }}>Nova Meta</button>
+            <button
+              onClick={() => setShowGoalModal(true)}
+              style={{ background: "none", border: "none", fontSize: "0.75rem", color: "var(--primary)", fontWeight: 700, textTransform: "uppercase", cursor: "pointer", letterSpacing: "0.5px" }}
+            >
+              Nova Meta
+            </button>
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem", flex: 1 }}>
             {initialData.goals?.length > 0 ? (
               initialData.goals.map((goal: any) => {
                 const percent = Math.min(100, Math.round((goal.currentAmount / goal.targetAmount) * 100));
+                const barColor = percent >= 75 ? "var(--success)" : percent >= 40 ? "var(--primary)" : "#f59e0b";
                 return (
                   <div key={goal.id}>
                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.5rem" }}>
@@ -293,20 +321,100 @@ export default function DashboardClient({ initialData, initialMonth, initialYear
                         {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(goal.currentAmount)} / {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(goal.targetAmount)}
                       </p>
                     </div>
-                    <div style={{ height: "6px", backgroundColor: "rgba(255, 255, 255, 0.1)", borderRadius: "3px", overflow: "hidden", marginBottom: "0.5rem" }}>
-                      <div style={{ height: "100%", width: `${percent}%`, backgroundColor: "var(--primary)", borderRadius: "3px" }}></div>
+                    <div style={{ height: "8px", backgroundColor: "rgba(255, 255, 255, 0.08)", borderRadius: "4px", overflow: "hidden", marginBottom: "0.4rem" }}>
+                      <div style={{ height: "100%", width: `${percent}%`, backgroundColor: barColor, borderRadius: "4px", transition: "width 0.5s ease" }}></div>
                     </div>
-                    <p style={{ fontSize: "0.75rem", color: "var(--primary)", fontWeight: 600 }}>{percent}% concluído</p>
+                    <p style={{ fontSize: "0.75rem", color: barColor, fontWeight: 600 }}>{percent}% concluído</p>
                   </div>
                 );
               })
             ) : (
-              <p style={{ fontSize: "0.875rem", color: "var(--text-muted)", textAlign: "center", marginTop: "2rem" }}>Nenhuma meta definida.</p>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", flex: 1, color: "var(--text-muted)", gap: "1rem", paddingTop: "2rem" }}>
+                <Target size={32} opacity={0.2} />
+                <p style={{ fontSize: "0.875rem", textAlign: "center" }}>Nenhuma meta definida.</p>
+                <button
+                  onClick={() => setShowGoalModal(true)}
+                  className="btn btn-primary"
+                  style={{ fontSize: "0.8rem", padding: "0.5rem 1rem" }}
+                >
+                  <Plus size={14} /> Criar primeira meta
+                </button>
+              </div>
             )}
           </div>
         </div>
 
       </div>
+
+      {/* Modal Nova Meta */}
+      {showGoalModal && (
+        <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: "1rem" }}>
+          <div className="card" style={{ width: "100%", maxWidth: "440px", position: "relative" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
+              <h2 style={{ fontSize: "1.2rem", fontWeight: 700 }}>Nova Meta Financeira</h2>
+              <button onClick={() => setShowGoalModal(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)" }}>
+                <X size={20} />
+              </button>
+            </div>
+            <form onSubmit={handleCreateGoal}>
+              <div className="form-group">
+                <label className="form-label">Nome da Meta</label>
+                <input
+                  className="input"
+                  type="text"
+                  placeholder="Ex: Reserva de Emergência"
+                  value={goalForm.name}
+                  onChange={(e) => setGoalForm({ ...goalForm, name: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Valor Alvo (R$)</label>
+                <input
+                  className="input"
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  placeholder="Ex: 10000"
+                  value={goalForm.targetAmount}
+                  onChange={(e) => setGoalForm({ ...goalForm, targetAmount: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Valor Atual (R$)</label>
+                <input
+                  className="input"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  placeholder="Ex: 2500 (opcional)"
+                  value={goalForm.currentAmount}
+                  onChange={(e) => setGoalForm({ ...goalForm, currentAmount: e.target.value })}
+                />
+              </div>
+              <div style={{ display: "flex", gap: "1rem", marginTop: "1.5rem" }}>
+                <button
+                  type="button"
+                  onClick={() => setShowGoalModal(false)}
+                  className="btn"
+                  style={{ flex: 1, border: "1px solid var(--border)", color: "var(--text-muted)", backgroundColor: "transparent" }}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  style={{ flex: 1 }}
+                  disabled={goalLoading}
+                >
+                  {goalLoading ? "Salvando..." : "Salvar Meta"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
