@@ -8,7 +8,8 @@ export async function getDashboardData(month?: number, year?: number) {
   if (!userId) return {
     totalIncomes: 0, totalExpenses: 0, balance: 0,
     chartData: { labels: [], data: [] },
-    accounts: [], creditCards: [], goals: []
+    accounts: [], creditCards: [], goals: [],
+    userName: ""
   };
 
   const currentDate = new Date();
