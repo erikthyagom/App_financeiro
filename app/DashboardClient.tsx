@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ArrowUpCircle, ArrowDownCircle, Wallet, PieChart, Info, CreditCard, Target, Plus, X } from "lucide-react";
+import { ArrowUpCircle, ArrowDownCircle, Wallet, PieChart, Info, CreditCard, Target, Plus, X, Layers } from "lucide-react";
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
 import { Doughnut } from "react-chartjs-2";
 import { useRouter } from "next/navigation";
@@ -23,6 +23,7 @@ type DashboardData = {
   accounts: any[];
   creditCards: any[];
   goals: any[];
+  userName: string;
 };
 
 const MONTHS = [
@@ -140,47 +141,73 @@ export default function DashboardClient({ initialData, initialMonth, initialYear
         </div>
       </div>
 
-      {/* Top Summary Cards */}
-      <div className="summary-grid">
+      {/* Top Section - Greeting and Quick Access */}
+      <div className="card" style={{ display: "flex", flexWrap: "wrap", marginBottom: "2rem", padding: "0", overflow: "hidden" }}>
         
-        {/* Card Saldo */}
-        <div className="card" style={{ position: "relative", overflow: "hidden", display: "flex", flexDirection: "column", justifyContent: "space-between", minHeight: "140px" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-            <p style={{ color: "var(--text-muted)", fontSize: "0.875rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: "1px" }}>Saldo do Mês</p>
-            <div style={{ padding: "0.4rem", backgroundColor: "rgba(255, 255, 255, 0.05)", borderRadius: "8px", color: "var(--primary)" }}>
-              <Wallet size={18} />
-            </div>
+        {/* Left Side: Overview */}
+        <div style={{ flex: "1 1 350px", padding: "2rem" }}>
+          <p style={{ color: "var(--text-muted)", fontSize: "0.875rem", marginBottom: "0.25rem" }}>Boa tarde,</p>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "2rem" }}>
+            <h2 style={{ fontSize: "1.5rem", fontWeight: 700 }}>{initialData.userName}!</h2>
+            <span style={{ fontSize: "1.5rem" }}>👋</span>
           </div>
-          <p style={{ fontSize: "2rem", fontWeight: 700, color: "var(--foreground)"}}>
-            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(initialData.balance)}
-          </p>
-          <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "4px", backgroundColor: "var(--primary)" }}></div>
+
+          <div style={{ display: "flex", gap: "3rem", flexWrap: "wrap" }}>
+             <div>
+               <p style={{ color: "var(--text-muted)", fontSize: "0.75rem", fontWeight: 600, textTransform: "uppercase", marginBottom: "0.5rem" }}>Receitas no mês atual</p>
+               <p style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--success)" }}>
+                 {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(initialData.totalIncomes)}
+               </p>
+             </div>
+             <div>
+               <p style={{ color: "var(--text-muted)", fontSize: "0.75rem", fontWeight: 600, textTransform: "uppercase", marginBottom: "0.5rem" }}>Despesas no mês atual</p>
+               <p style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--danger)" }}>
+                 {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(initialData.totalExpenses)}
+               </p>
+             </div>
+             <div style={{ display: "flex", alignItems: "center", justifyContent: "center", border: "1px solid var(--border)", borderRadius: "8px", padding: "0.5rem", width: "40px", height: "40px", cursor: "pointer" }}>
+               <PieChart size={20} color="var(--text-muted)" />
+             </div>
+          </div>
         </div>
 
-        {/* Card Receitas */}
-        <div className="card" style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", minHeight: "140px" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-            <p style={{ color: "var(--text-muted)", fontSize: "0.875rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: "1px" }}>Total de Receitas</p>
-            <div style={{ padding: "0.4rem", backgroundColor: "rgba(34, 197, 94, 0.1)", borderRadius: "8px", color: "var(--success)" }}>
-              <ArrowUpCircle size={18} />
-            </div>
-          </div>
-          <p style={{ fontSize: "2rem", fontWeight: 700, color: "var(--success)"}}>
-            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(initialData.totalIncomes)}
-          </p>
-        </div>
+        {/* Right Side: Quick Access */}
+        <div style={{ flex: "1 1 350px", padding: "2rem", borderLeft: "1px solid var(--border)", display: "flex", flexDirection: "column", alignItems: "center", backgroundColor: "rgba(0,0,0,0.01)" }}>
+          <p style={{ fontWeight: 600, marginBottom: "1.5rem", textAlign: "center", width: "100%" }}>Acesso rápido</p>
+          
+          <div style={{ display: "flex", gap: "1.5rem", justifyContent: "center", flexWrap: "wrap" }}>
+            {/* Action 1: Despesa */}
+            <Link href="/despesas" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.75rem" }}>
+              <div style={{ width: "56px", height: "56px", borderRadius: "50%", border: "2px solid var(--danger)", display: "flex", justifyContent: "center", alignItems: "center", color: "var(--danger)", transition: "all 0.2s", backgroundColor: "white" }}>
+                <ArrowDownCircle size={24} />
+              </div>
+              <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 500, textTransform: "uppercase" }}>Despesa</span>
+            </Link>
 
-        {/* Card Despesas */}
-        <div className="card" style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", minHeight: "140px" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-            <p style={{ color: "var(--text-muted)", fontSize: "0.875rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: "1px" }}>Total de Despesas</p>
-            <div style={{ padding: "0.4rem", backgroundColor: "rgba(239, 68, 68, 0.1)", borderRadius: "8px", color: "var(--danger)" }}>
-              <ArrowDownCircle size={18} />
+            {/* Action 2: Receita */}
+            <Link href="/receitas" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.75rem" }}>
+              <div style={{ width: "56px", height: "56px", borderRadius: "50%", border: "2px solid var(--success)", display: "flex", justifyContent: "center", alignItems: "center", color: "var(--success)", transition: "all 0.2s", backgroundColor: "white" }}>
+                <ArrowUpCircle size={24} />
+              </div>
+              <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 500, textTransform: "uppercase" }}>Receita</span>
+            </Link>
+
+            {/* Action 3: Transf */}
+            <Link href="/contas" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.75rem" }}>
+              <div style={{ width: "56px", height: "56px", borderRadius: "50%", border: "2px solid #94a3b8", display: "flex", justifyContent: "center", alignItems: "center", color: "#94a3b8", transition: "all 0.2s", backgroundColor: "white" }}>
+                <Layers size={24} />
+              </div>
+              <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 500, textTransform: "uppercase" }}>Transf.</span>
+            </Link>
+
+            {/* Action 4: Importar */}
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.75rem", opacity: 0.5, cursor: "not-allowed" }}>
+              <div style={{ width: "56px", height: "56px", borderRadius: "50%", border: "2px solid #cbd5e1", display: "flex", justifyContent: "center", alignItems: "center", color: "#94a3b8", backgroundColor: "white" }}>
+                <Wallet size={24} />
+              </div>
+              <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 500, textTransform: "uppercase" }}>Importar</span>
             </div>
           </div>
-          <p style={{ fontSize: "2rem", fontWeight: 700, color: "var(--danger)"}}>
-            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(initialData.totalExpenses)}
-          </p>
         </div>
       </div>
 
@@ -190,8 +217,8 @@ export default function DashboardClient({ initialData, initialMonth, initialYear
         {/* Gastos por Categoria */}
         <div className="card" style={{ display: "flex", flexDirection: "column" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "2rem" }}>
-            <PieChart size={18} color="var(--primary)" />
-            <h3 style={{ fontSize: "1.1rem", fontWeight: 600 }}>Gastos por Categoria</h3>
+            <div style={{ width: "4px", height: "20px", backgroundColor: "var(--primary)", borderRadius: "2px" }}></div>
+            <h3 style={{ fontSize: "1.1rem", fontWeight: 600, color: "var(--foreground)" }}>Gastos por Categoria</h3>
           </div>
           
           {initialData.chartData.labels.length > 0 ? (
@@ -204,16 +231,16 @@ export default function DashboardClient({ initialData, initialMonth, initialYear
                   <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.875rem" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                       <span style={{ display: "inline-block", width: "8px", height: "8px", borderRadius: "50%", backgroundColor: chartColors[index] }}></span>
-                      <span style={{ color: "var(--text-muted)" }}>{label}</span>
+                      <span style={{ color: "var(--text-muted)", fontWeight: 500 }}>{label}</span>
                     </div>
-                    <span style={{ fontWeight: 600 }}>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(initialData.chartData.data[index])}</span>
+                    <span style={{ fontWeight: 600, color: "var(--foreground)" }}>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(initialData.chartData.data[index])}</span>
                   </div>
                 ))}
               </div>
             </>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", color: "var(--text-muted)", gap: "1rem" }}>
-              <Info size={32} opacity={0.2} />
+              <PieChart size={32} opacity={0.2} />
               <p style={{ fontSize: "0.875rem", textAlign: "center" }}>Não há despesas.</p>
             </div>
           )}
@@ -223,25 +250,25 @@ export default function DashboardClient({ initialData, initialMonth, initialYear
         <div className="card" style={{ display: "flex", flexDirection: "column" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-              <Wallet size={18} color="var(--primary)" />
-              <h3 style={{ fontSize: "1.1rem", fontWeight: 600 }}>Minhas Contas</h3>
+              <div style={{ width: "4px", height: "20px", backgroundColor: "var(--success)", borderRadius: "2px" }}></div>
+              <h3 style={{ fontSize: "1.1rem", fontWeight: 600, color: "var(--foreground)" }}>Minhas Contas</h3>
             </div>
-            <Link href="/contas" style={{ fontSize: "0.75rem", color: "var(--primary)", fontWeight: 600, textTransform: "uppercase" }}>Ver Todas</Link>
           </div>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: "1rem", flex: 1 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem", flex: 1 }}>
             {initialData.accounts?.length > 0 ? (
               initialData.accounts.map((acc: any) => (
-                <div key={acc.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "1rem", backgroundColor: "rgba(255, 255, 255, 0.02)", borderRadius: "8px", border: "1px solid var(--border)" }}>
+                <div key={acc.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingBottom: "1rem", borderBottom: "1px solid var(--border)" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-                    <div style={{ padding: "0.5rem", borderRadius: "8px", backgroundColor: "rgba(255,255,255,0.05)" }}>
+                    <div style={{ width: "32px", height: "32px", borderRadius: "8px", backgroundColor: "var(--background)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                       <Wallet size={16} color="var(--text-muted)" />
                     </div>
                     <div>
-                      <p style={{ fontSize: "0.875rem", fontWeight: 600 }}>{acc.name}</p>
+                      <p style={{ fontSize: "0.875rem", fontWeight: 600, color: "var(--foreground)" }}>{acc.name}</p>
+                      <p style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>Conta corrente</p>
                     </div>
                   </div>
-                  <p style={{ fontSize: "0.875rem", fontWeight: 700 }}>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(acc.balance)}</p>
+                  <p style={{ fontSize: "0.875rem", fontWeight: 700, color: "var(--primary)" }}>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(acc.balance)}</p>
                 </div>
               ))
             ) : (
@@ -249,8 +276,8 @@ export default function DashboardClient({ initialData, initialMonth, initialYear
             )}
           </div>
           
-          <Link href="/contas" className="btn" style={{ width: "100%", marginTop: "1.5rem", border: "1px dashed var(--border)", color: "var(--text-muted)", backgroundColor: "transparent", fontSize: "0.875rem", padding: "0.75rem" }}>
-            <Plus size={16} /> Conectar
+          <Link href="/contas" className="btn" style={{ width: "100%", marginTop: "1.5rem", border: "1px solid var(--border)", color: "var(--text-muted)", backgroundColor: "transparent", fontSize: "0.875rem", padding: "0.75rem" }}>
+            Gerenciar contas
           </Link>
         </div>
 
@@ -258,28 +285,40 @@ export default function DashboardClient({ initialData, initialMonth, initialYear
         <div className="card" style={{ display: "flex", flexDirection: "column" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-              <CreditCard size={18} color="var(--primary)" />
-              <h3 style={{ fontSize: "1.1rem", fontWeight: 600 }}>Meus Cartões</h3>
+              <div style={{ width: "4px", height: "20px", backgroundColor: "var(--primary)", borderRadius: "2px" }}></div>
+              <h3 style={{ fontSize: "1.1rem", fontWeight: 600, color: "var(--foreground)" }}>Meus Cartões</h3>
             </div>
-            <Link href="/cartoes" style={{ fontSize: "0.75rem", color: "var(--primary)", fontWeight: 600, textTransform: "uppercase" }}>Ver Todos</Link>
           </div>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: "1rem", flex: 1 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem", flex: 1 }}>
             {initialData.creditCards?.length > 0 ? (
               initialData.creditCards.map((card: any) => {
                 const spent = card.expenses?.reduce((sum: number, exp: any) => sum + exp.amount, 0) || 0;
                 return (
-                  <div key={card.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "1rem", backgroundColor: "rgba(255, 255, 255, 0.02)", borderRadius: "8px", border: "1px solid var(--border)" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-                      <div style={{ padding: "0.4rem 0.6rem", borderRadius: "4px", backgroundColor: "var(--primary)", color: "white", fontSize: "0.7rem", fontWeight: 800 }}>
-                        {card.name.substring(0, 4).toUpperCase()}
+                  <div key={card.id} style={{ display: "flex", flexDirection: "column", paddingBottom: "1.25rem", borderBottom: "1px solid var(--border)" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+                        <div style={{ width: "32px", height: "32px", borderRadius: "8px", backgroundColor: "var(--background)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          <CreditCard size={16} color="var(--text-muted)" />
+                        </div>
+                        <div>
+                          <p style={{ fontSize: "0.875rem", fontWeight: 600, color: "var(--foreground)" }}>{card.name}</p>
+                          <p style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>Cartão de crédito</p>
+                        </div>
                       </div>
+                      <span style={{ fontSize: "0.75rem", color: "var(--success)", backgroundColor: "rgba(16, 185, 129, 0.1)", padding: "0.25rem 0.5rem", borderRadius: "12px", fontWeight: 600 }}>Ver fatura</span>
+                    </div>
+                    
+                    <div style={{ display: "flex", backgroundColor: "var(--background)", padding: "1rem", borderRadius: "8px", justifyContent: "space-between" }}>
                       <div>
-                        <p style={{ fontSize: "0.875rem", fontWeight: 600 }}>{card.name}</p>
-                        <p style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>Limite: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(card.limit)}</p>
+                        <p style={{ fontSize: "0.7rem", color: "var(--text-muted)", textTransform: "uppercase", marginBottom: "0.25rem" }}>Limite Disponível</p>
+                        <p style={{ fontSize: "0.875rem", fontWeight: 600, color: "var(--foreground)" }}>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(card.limit - spent)}</p>
+                      </div>
+                      <div style={{ textAlign: "right" }}>
+                        <p style={{ fontSize: "0.7rem", color: "var(--text-muted)", textTransform: "uppercase", marginBottom: "0.25rem" }}>Fatura atual <span style={{ textTransform: "none", opacity: 0.7 }}>(Venc. {card.dueDay})</span></p>
+                        <p style={{ fontSize: "0.875rem", fontWeight: 600, color: "var(--foreground)" }}>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(spent)}</p>
                       </div>
                     </div>
-                    <p style={{ fontSize: "0.875rem", fontWeight: 700, color: "var(--success)" }}>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(spent)}</p>
                   </div>
                 );
               })
@@ -288,8 +327,8 @@ export default function DashboardClient({ initialData, initialMonth, initialYear
             )}
           </div>
           
-          <Link href="/cartoes" className="btn" style={{ width: "100%", marginTop: "1.5rem", border: "1px dashed var(--border)", color: "var(--text-muted)", backgroundColor: "transparent", fontSize: "0.875rem", padding: "0.75rem" }}>
-            <Plus size={16} /> Adicionar
+          <Link href="/cartoes" className="btn" style={{ width: "100%", marginTop: "1.5rem", border: "1px solid var(--border)", color: "var(--text-muted)", backgroundColor: "transparent", fontSize: "0.875rem", padding: "0.75rem" }}>
+            Gerenciar cartões
           </Link>
         </div>
 
@@ -297,8 +336,8 @@ export default function DashboardClient({ initialData, initialMonth, initialYear
         <div className="card" style={{ display: "flex", flexDirection: "column" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-              <Target size={18} color="var(--primary)" />
-              <h3 style={{ fontSize: "1.1rem", fontWeight: 600 }}>Metas Financeiras</h3>
+              <div style={{ width: "4px", height: "20px", backgroundColor: "var(--success)", borderRadius: "2px" }}></div>
+              <h3 style={{ fontSize: "1.1rem", fontWeight: 600, color: "var(--foreground)" }}>Metas Financeiras</h3>
             </div>
             <button
               onClick={() => setShowGoalModal(true)}
@@ -316,12 +355,12 @@ export default function DashboardClient({ initialData, initialMonth, initialYear
                 return (
                   <div key={goal.id}>
                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.5rem" }}>
-                      <p style={{ fontSize: "0.875rem", fontWeight: 600 }}>{goal.name}</p>
+                      <p style={{ fontSize: "0.875rem", fontWeight: 600, color: "var(--foreground)" }}>{goal.name}</p>
                       <p style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
                         {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(goal.currentAmount)} / {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(goal.targetAmount)}
                       </p>
                     </div>
-                    <div style={{ height: "8px", backgroundColor: "rgba(255, 255, 255, 0.08)", borderRadius: "4px", overflow: "hidden", marginBottom: "0.4rem" }}>
+                    <div style={{ height: "8px", backgroundColor: "var(--border)", borderRadius: "4px", overflow: "hidden", marginBottom: "0.4rem" }}>
                       <div style={{ height: "100%", width: `${percent}%`, backgroundColor: barColor, borderRadius: "4px", transition: "width 0.5s ease" }}></div>
                     </div>
                     <p style={{ fontSize: "0.75rem", color: barColor, fontWeight: 600 }}>{percent}% concluído</p>

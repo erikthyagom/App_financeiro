@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import Sidebar from "@/components/Sidebar";
+import Navbar from "@/components/Navbar";
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -9,8 +9,8 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
 
   return (
     <div className={isAuthPage ? "" : "layout-container"}>
-      {!isAuthPage && <Sidebar />}
-      <main className={isAuthPage ? "" : "main-content main-content-shifted"}>
+      {!isAuthPage && <Navbar />}
+      <main className={isAuthPage ? "" : "main-content"}>
         {children}
       </main>
     </div>

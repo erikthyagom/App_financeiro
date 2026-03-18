@@ -19,7 +19,7 @@ export async function getDashboardData(month?: number, year?: number) {
   const startDate = new Date(targetYear, targetMonth, 1);
   const endDate = new Date(targetYear, targetMonth + 1, 0, 23, 59, 59, 999);
 
-  const [incomes, expenses, accounts, creditCards, goals] = await Promise.all([
+  const [incomes, expenses, accounts, creditCards, goals, user] = await Promise.all([
     prisma.income.findMany({
       where: { userId, date: { gte: startDate, lte: endDate } },
     }),
@@ -32,7 +32,8 @@ export async function getDashboardData(month?: number, year?: number) {
       where: { userId },
       include: { expenses: { where: { date: { gte: startDate, lte: endDate } } } }
     }),
-    prisma.goal.findMany({ where: { userId } })
+    prisma.goal.findMany({ where: { userId } }),
+    prisma.user.findUnique({ where: { id: userId }, select: { name: true } })
   ]);
 
   const totalIncomes = incomes.reduce((acc: number, curr: any) => acc + curr.amount, 0);
@@ -58,6 +59,7 @@ export async function getDashboardData(month?: number, year?: number) {
     chartData,
     accounts,
     creditCards,
-    goals
+    goals,
+    userName: user?.name || "Usuário",
   };
 }

@@ -89,8 +89,7 @@ export default function CategoryClient({ initialCategories }: { initialCategorie
             {categories.map((cat) => (
               <div key={cat.id} style={{ 
                 display: "flex", justifyContent: "space-between", alignItems: "center", 
-                padding: "1rem", backgroundColor: "var(--background)", borderRadius: "8px",
-                border: "1px solid var(--border)"
+                padding: "1rem 0", borderBottom: "1px solid var(--border)"
               }}>
                 <span style={{ fontWeight: 500 }}>{cat.name}</span>
                 <div style={{ display: "flex", gap: "0.5rem" }}>
