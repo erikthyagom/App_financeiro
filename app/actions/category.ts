@@ -14,13 +14,13 @@ export async function getCategories() {
   });
 }
 
-export async function createCategory(name: string) {
+export async function createCategory(name: string, type: string = "EXPENSE", color: string = "#94a3b8", icon: string = "List") {
   const userId = await getCurrentUserId();
   if (!userId) return { success: false, error: "Não autorizado" };
 
   try {
     await prisma.category.create({
-      data: { name, userId },
+      data: { name, type, color, icon, userId },
     });
     revalidatePath("/categorias");
     return { success: true };

@@ -9,6 +9,8 @@ import { Doughnut } from "react-chartjs-2";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createGoal } from "@/app/actions/goal";
+import { createExpense } from "@/app/actions/expense";
+import NewExpenseModal from "@/components/NewExpenseModal";
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
@@ -22,6 +24,7 @@ type DashboardData = {
   };
   accounts: any[];
   creditCards: any[];
+  categories: any[];
   goals: any[];
   userName: string;
 };
@@ -48,6 +51,8 @@ export default function DashboardClient({ initialData, initialMonth, initialYear
   const [goalForm, setGoalForm] = useState({ name: "", targetAmount: "", currentAmount: "" });
   const [goalLoading, setGoalLoading] = useState(false);
 
+  const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
+
   const handleFilterChange = (m: number, y: number) => {
     setMonth(m);
     setYear(y);
@@ -66,6 +71,15 @@ export default function DashboardClient({ initialData, initialMonth, initialYear
     if (result.success) {
       setShowGoalModal(false);
       setGoalForm({ name: "", targetAmount: "", currentAmount: "" });
+      router.refresh();
+    } else {
+      alert(result.error);
+    }
+  };
+
+  const handleCreateExpense = async (data: any) => {
+    const result = await createExpense(data);
+    if (result.success) {
       router.refresh();
     } else {
       alert(result.error);
@@ -177,12 +191,12 @@ export default function DashboardClient({ initialData, initialMonth, initialYear
           
           <div style={{ display: "flex", gap: "1.5rem", justifyContent: "center", flexWrap: "wrap" }}>
             {/* Action 1: Despesa */}
-            <Link href="/despesas" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.75rem" }}>
+            <button onClick={() => setIsExpenseModalOpen(true)} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.75rem", background: "none", border: "none", cursor: "pointer", outline: "none" }}>
               <div style={{ width: "56px", height: "56px", borderRadius: "50%", border: "2px solid var(--danger)", display: "flex", justifyContent: "center", alignItems: "center", color: "var(--danger)", transition: "all 0.2s", backgroundColor: "white" }}>
                 <ArrowDownCircle size={24} />
               </div>
               <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 500, textTransform: "uppercase" }}>Despesa</span>
-            </Link>
+            </button>
 
             {/* Action 2: Receita */}
             <Link href="/receitas" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.75rem" }}>
@@ -454,6 +468,16 @@ export default function DashboardClient({ initialData, initialMonth, initialYear
           </div>
         </div>
       )}
+
+      <NewExpenseModal 
+        isOpen={isExpenseModalOpen} 
+        onClose={() => setIsExpenseModalOpen(false)} 
+        onSubmit={handleCreateExpense} 
+        accounts={initialData.accounts} 
+        creditCards={initialData.creditCards}
+        categories={initialData.categories}
+      />
+
     </div>
   );
 }
