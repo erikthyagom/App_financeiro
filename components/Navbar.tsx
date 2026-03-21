@@ -37,7 +37,7 @@ export default function Navbar() {
 
   const navLinks = [
     { name: "visão geral", href: "/" },
-    { name: "lançamentos", href: "/receitas" }, // Map to incomes/expenses for now
+    { name: "lançamentos", href: "/lancamentos" },
     { name: "relatórios", href: "/relatorios" },
     { name: "contas", href: "/contas" },
     { name: "cartões", href: "/cartoes" },

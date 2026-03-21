@@ -1,21 +1,18 @@
-export const dynamic = "force-dynamic";
 import { getReportsData } from "../actions/reports";
 import ReportsClient from "./ReportsClient";
 
-export const metadata = {
-  title: "Relatórios | Controle Financeiro",
-};
+export default async function RelatoriosPage(props: { searchParams: Promise<{ month?: string; year?: string }> }) {
+  const searchParams = await props.searchParams;
+  
+  const now = new Date();
+  const month = searchParams.month ? parseInt(searchParams.month) : now.getMonth();
+  const year = searchParams.year ? parseInt(searchParams.year) : now.getFullYear();
 
-export default async function RelatoriosPage({ searchParams }: { searchParams: Promise<{ year?: string }> }) {
-  const currentDate = new Date();
-  const params = await searchParams;
-  const year = params.year ? parseInt(params.year) : currentDate.getFullYear();
-  
-  const reportsData = await getReportsData(year);
-  
+  const data = await getReportsData(month, year);
+
   return (
-    <div>
-      <ReportsClient initialData={reportsData} initialYear={year} />
+    <div style={{ padding: "2rem", maxWidth: "1200px", margin: "0 auto" }}>
+      <ReportsClient initialData={data} currentMonth={month} currentYear={year} />
     </div>
   );
 }

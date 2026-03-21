@@ -1,101 +1,93 @@
 "use client";
 
-import { useState } from "react";
-import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement } from "chart.js";
-import { Doughnut, Bar } from "react-chartjs-2";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { PieChart, BarChart2, Info } from "lucide-react";
+import { Chart as ChartJS, ArcElement, BarElement, CategoryScale, LinearScale, Tooltip, Legend } from "chart.js";
+import { Doughnut, Bar } from "react-chartjs-2";
 
-ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement);
+ChartJS.register(ArcElement, BarElement, CategoryScale, LinearScale, Tooltip, Legend);
 
-const MONTHS = [
-  "Jan", "Fev", "Mar", "Abr", "Mai", "Jun",
-  "Jul", "Ago", "Set", "Out", "Nov", "Dez"
-];
-
-const generateColors = (count: number) => {
-  const colors = [
-    "#4f46e5", "#6366f1", "#818cf8", "#a5b4fc", "#c7d2fe", 
-    "#10b981", "#34d399", "#6ee7b7", "#f59e0b", "#fbbf24", 
-    "#fcd34d", "#ef4444", "#f87171", "#fca5a5"
-  ];
-  return colors.slice(0, count);
-};
-
-export default function ReportsClient({ initialData, initialYear }: { initialData: any, initialYear: number }) {
+export default function ReportsClient({ initialData, currentMonth, currentYear }: { initialData: any, currentMonth: number, currentYear: number }) {
   const router = useRouter();
-  const [year, setYear] = useState(initialYear);
 
-  const handleYearChange = (y: number) => {
-    setYear(y);
-    router.push(`/relatorios?year=${y}`);
+  const handlePrevMonth = () => {
+    let m = currentMonth - 1;
+    let y = currentYear;
+    if (m < 0) {
+      m = 11;
+      y--;
+    }
+    router.push(`/relatorios?month=${m}&year=${y}`);
   };
 
-  // Gráfico de Barras - Comparação
-  const barChartData = {
-    labels: MONTHS,
+  const handleNextMonth = () => {
+    let m = currentMonth + 1;
+    let y = currentYear;
+    if (m > 11) {
+      m = 0;
+      y++;
+    }
+    router.push(`/relatorios?month=${m}&year=${y}`);
+  };
+
+  const monthName = new Date(currentYear, currentMonth, 1).toLocaleString('pt-BR', { month: 'long' });
+
+  if (!initialData) return <div>Sem dados</div>;
+
+  const barData = {
+    labels: initialData.cashFlow.labels,
     datasets: [
       {
         label: 'Receitas',
-        data: initialData.monthlyComparison.incomes,
-        backgroundColor: 'rgba(34, 197, 94, 0.8)',
+        data: initialData.cashFlow.incomes,
+        backgroundColor: '#10b981', // success
         borderRadius: 4,
       },
       {
         label: 'Despesas',
-        data: initialData.monthlyComparison.expenses,
-        backgroundColor: 'rgba(239, 68, 68, 0.8)',
+        data: initialData.cashFlow.expenses,
+        backgroundColor: '#ef4444', // danger
         borderRadius: 4,
       }
     ]
   };
 
-  const barChartOptions = {
+  const barOptions = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
       legend: {
         position: 'top' as const,
-        labels: { font: { family: 'Inter', size: 13 } }
+        labels: { family: 'Inter', color: '#64748b' } // text-muted color
       },
       tooltip: {
         backgroundColor: 'rgba(15, 23, 42, 0.9)',
         titleFont: { family: 'Inter', size: 14 },
         bodyFont: { family: 'Inter', size: 14 },
-        callbacks: {
-          label: function(context: any) {
-            return context.dataset.label + ': ' + new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(context.parsed.y);
-          }
-        }
       }
     },
     scales: {
-      y: {
-        beginAtZero: true,
-        grid: { color: 'rgba(0, 0, 0, 0.05)' },
-        ticks: { font: { family: 'Inter' } }
-      },
-      x: {
-        grid: { display: false },
-        ticks: { font: { family: 'Inter' } }
-      }
+      x: { grid: { display: false } },
+      y: { border: { display: false } }
     }
   };
 
-  // Gráfico de Rosca - Categorias
-  const pieChartData = {
-    labels: initialData.expensesByCategory.labels,
-    datasets: [{
-      data: initialData.expensesByCategory.data,
-      backgroundColor: generateColors(initialData.expensesByCategory.labels.length),
-      borderWidth: 0,
-    }]
+  const doughnutData = {
+    labels: initialData.categoryChart.labels,
+    datasets: [
+      {
+        data: initialData.categoryChart.data,
+        backgroundColor: initialData.categoryChart.colors,
+        borderWidth: 0,
+        hoverOffset: 4,
+      },
+    ],
   };
 
-  const pieChartOptions = {
-    cutout: '70%',
+  const doughnutOptions = {
+    cutout: '75%',
     plugins: {
-      legend: { position: 'right' as const, labels: { usePointStyle: true, padding: 20, font: { family: 'Inter', size: 13 } } },
+      legend: { display: false },
       tooltip: {
         backgroundColor: 'rgba(15, 23, 42, 0.9)',
         padding: 12,
@@ -115,67 +107,68 @@ export default function ReportsClient({ initialData, initialYear }: { initialDat
     }
   };
 
-  const totalIncomes = initialData.monthlyComparison.incomes.reduce((a: number, b: number) => a + b, 0);
-  const totalExpenses = initialData.monthlyComparison.expenses.reduce((a: number, b: number) => a + b, 0);
-
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem", flexWrap: "wrap", gap: "1rem" }}>
-        <h1 className="page-title" style={{ marginBottom: 0 }}>Relatórios e Gráficos</h1>
-        
-        <select 
-          className="select" 
-          style={{ width: "auto", margin: 0 }}
-          value={year} 
-          onChange={(e) => handleYearChange(parseInt(e.target.value))}
-        >
-          {[...Array(5)].map((_, i) => {
-            const y = new Date().getFullYear() - 2 + i;
-            return <option key={y} value={y}>{y}</option>;
-          })}
-        </select>
+      <h1 className="page-title">Gráficos e Relatórios</h1>
+
+      <div className="card" style={{ marginBottom: "2rem", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <button onClick={handlePrevMonth} className="btn" style={{ background: "transparent", color: "var(--foreground)" }}><ChevronLeft /></button>
+        <h2 style={{ fontSize: "1.25rem", textTransform: "capitalize", fontWeight: 600 }}>{monthName} {currentYear}</h2>
+        <button onClick={handleNextMonth} className="btn" style={{ background: "transparent", color: "var(--foreground)" }}><ChevronRight /></button>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "1.5rem", marginBottom: "2rem" }}>
-        <div className="card">
-          <p style={{ color: "var(--text-muted)", fontSize: "0.875rem", fontWeight: 600, textTransform: "uppercase" }}>Balanço Anual</p>
-          <p style={{ fontSize: "2rem", fontWeight: 700, color: totalIncomes - totalExpenses >= 0 ? "var(--success)" : "var(--danger)"}}>
-            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalIncomes - totalExpenses)}
-          </p>
-        </div>
-      </div>
-
-      <div style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(500px, 1fr))", gap: "2rem" }}>
         
-        {/* Gráfico Bar */}
-        <div className="card">
-          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "2rem" }}>
-            <BarChart2 size={20} color="var(--primary)" />
-            <h3 style={{ fontSize: "1.25rem", fontWeight: 600 }}>Receitas vs Despesas ({year})</h3>
-          </div>
-          
-          <div style={{ height: "400px", width: "100%" }}>
-            <Bar data={barChartData} options={barChartOptions as any} />
+        {/* Gráfico Barras (Fluxo de Caixa) */}
+        <div className="card" style={{ display: "flex", flexDirection: "column" }}>
+          <h3 style={{ fontSize: "1.1rem", fontWeight: 600, marginBottom: "1.5rem" }}>Fluxo de Caixa Diário</h3>
+          <div style={{ flex: 1, minHeight: "350px", position: "relative" }}>
+            <Bar data={barData} options={barOptions} />
           </div>
         </div>
 
-        {/* Gráfico Doughnut */}
+        {/* Gráfico Rosca (Categorias) */}
         <div className="card">
-          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "2rem" }}>
-            <PieChart size={20} color="var(--primary)" />
-            <h3 style={{ fontSize: "1.25rem", fontWeight: 600 }}>Gastos por Categoria ({year})</h3>
-          </div>
+          <h3 style={{ fontSize: "1.1rem", fontWeight: 600, marginBottom: "1.5rem" }}>Despesas por Categoria</h3>
           
-          {initialData.expensesByCategory.labels.length > 0 ? (
-            <div style={{ height: "350px", display: "flex", justifyContent: "center", alignItems: "center" }}>
-              <Doughnut data={pieChartData} options={pieChartOptions as any} />
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "2rem", justifyContent: "center", alignItems: "center" }}>
+            <div style={{ position: "relative", width: "250px", height: "250px" }}>
+              {initialData.categoryChart.data.length > 0 ? (
+                <Doughnut data={doughnutData} options={doughnutOptions} />
+              ) : (
+                <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "var(--background)", borderRadius: "50%", color: "var(--text-muted)", border: "8px solid var(--border)" }}>
+                  Sem despesas
+                </div>
+              )}
+              {initialData.categoryChart.data.length > 0 && (
+                <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", textAlign: "center" }}>
+                  <p style={{ fontSize: "0.875rem", color: "var(--text-muted)", marginBottom: "0.25rem" }}>Total</p>
+                  <p style={{ fontSize: "1.25rem", fontWeight: 700, color: "var(--danger)" }}>
+                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(initialData.totals.expenses)}
+                  </p>
+                </div>
+              )}
             </div>
-          ) : (
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "250px", color: "var(--text-muted)", gap: "1rem" }}>
-              <Info size={48} opacity={0.2} />
-              <p>Não há despesas registradas em {year}.</p>
+
+            <div style={{ flex: "1 1 200px" }}>
+              <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "1rem" }}>
+                {initialData.categoryChart.breakdown.map((cat: any) => (
+                  <li key={cat.name} style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                      <div style={{ width: "12px", height: "12px", borderRadius: "50%", backgroundColor: cat.color }}></div>
+                      <span style={{ fontWeight: 500, fontSize: "0.95rem" }}>{cat.name}</span>
+                    </div>
+                    <div style={{ textAlign: "right" }}>
+                      <span style={{ fontWeight: 600 }}>{cat.percentage.toFixed(1)}%</span>
+                      <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", margin: 0 }}>
+                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(cat.value)}
+                      </p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
             </div>
-          )}
+          </div>
         </div>
 
       </div>

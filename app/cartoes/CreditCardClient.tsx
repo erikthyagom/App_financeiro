@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Plus, Edit2, Trash2, X, CreditCard as CardIcon } from "lucide-react";
 import { createCreditCard, updateCreditCard, deleteCreditCard } from "../actions/creditCard";
+import Link from "next/link";
 
 type CreditCard = {
   id: string;
@@ -138,6 +139,14 @@ export default function CreditCardClient({ initialCards }: { initialCards: Credi
                   <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 600 }}>Vencimento</p>
                   <p style={{ fontWeight: 500 }}>Dia {card.dueDay}</p>
                 </div>
+              </div>
+              <div style={{ marginTop: "1rem" }}>
+                <Link 
+                  href={`/cartoes/${card.id}`} 
+                  style={{ display: "block", textAlign: "center", textDecoration: "none", padding: "0.5rem", borderRadius: "8px", backgroundColor: "var(--primary-light, #e8f5e9)", color: "var(--primary)", fontWeight: 600, fontSize: "0.875rem" }}
+                >
+                  Ver Faturas
+                </Link>
               </div>
             </div>
           ))

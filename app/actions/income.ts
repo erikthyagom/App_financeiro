@@ -15,14 +15,76 @@ export async function getIncomes() {
   });
 }
 
-export async function createIncome(data: { description: string; amount: number; date: Date; note?: string; categoryId: string }) {
+export async function createIncome(data: { 
+  description: string; 
+  amount: number; 
+  date: Date; 
+  note?: string; 
+  categoryId: string;
+  repeatMode?: string;
+  fixedFrequency?: string;
+  installmentsCount?: number;
+  installmentsPeriod?: string;
+}) {
   const userId = await getCurrentUserId();
   if (!userId) return { success: false, error: "Não autorizado" };
 
   try {
-    await prisma.income.create({ 
-      data: { ...data, userId } 
-    });
+    const { 
+      repeatMode, fixedFrequency, installmentsCount, installmentsPeriod,
+      ...baseIncomeData 
+    } = data;
+
+    if (repeatMode === "installments" && installmentsCount && installmentsCount > 1) {
+      const incomesToCreate = [];
+      const baseDate = new Date(baseIncomeData.date);
+      const amountPerInstallment = baseIncomeData.amount / installmentsCount;
+      
+      for (let i = 0; i < installmentsCount; i++) {
+        const d = new Date(baseDate);
+        if (installmentsPeriod === "Meses") d.setMonth(d.getMonth() + i);
+        else if (installmentsPeriod === "Dias") d.setDate(d.getDate() + i);
+        else if (installmentsPeriod === "Semanas") d.setDate(d.getDate() + i * 7);
+        else if (installmentsPeriod === "Anos") d.setFullYear(d.getFullYear() + i);
+        
+        incomesToCreate.push({
+          ...baseIncomeData,
+          userId,
+          date: d,
+          description: `${baseIncomeData.description} (${i + 1}/${installmentsCount})`,
+          amount: amountPerInstallment
+        });
+      }
+      
+      await prisma.income.createMany({ data: incomesToCreate });
+    } else if (repeatMode === "fixed" && fixedFrequency) {
+      const incomesToCreate = [];
+      const baseDate = new Date(baseIncomeData.date);
+      const occurrences = 12; // Project 12 occurrences into the future
+      
+      for (let i = 0; i < occurrences; i++) {
+        const d = new Date(baseDate);
+        if (fixedFrequency === "Mensal") d.setMonth(d.getMonth() + i);
+        else if (fixedFrequency === "Semanal") d.setDate(d.getDate() + i * 7);
+        else if (fixedFrequency === "Anual") d.setFullYear(d.getFullYear() + i);
+        else if (fixedFrequency === "Diário") d.setDate(d.getDate() + i);
+        
+        incomesToCreate.push({
+          ...baseIncomeData,
+          userId,
+          date: d,
+          description: baseIncomeData.description,
+          amount: baseIncomeData.amount
+        });
+      }
+      
+      await prisma.income.createMany({ data: incomesToCreate });
+    } else {
+      await prisma.income.create({ 
+        data: { ...baseIncomeData, userId } 
+      });
+    }
+
     revalidatePath("/receitas");
     return { success: true };
   } catch (error) {

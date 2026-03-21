@@ -31,6 +31,11 @@ export default function IncomeClient({ initialIncomes, categories }: { initialIn
   });
   
   const [loading, setLoading] = useState(false);
+  
+  const [repeatMode, setRepeatMode] = useState<"fixed" | "installments" | "">("");
+  const [fixedFrequency, setFixedFrequency] = useState("Mensal");
+  const [installmentsCount, setInstallmentsCount] = useState("2");
+  const [installmentsPeriod, setInstallmentsPeriod] = useState("Meses");
 
   // Derivando totais do mês seria interessante, mas vamos focar no CRUD primeiro
   const total = incomes.reduce((acc, curr) => acc + curr.amount, 0);
@@ -45,7 +50,6 @@ export default function IncomeClient({ initialIncomes, categories }: { initialIn
         categoryId: income.categoryId,
         note: income.note || "",
       });
-    } else {
       setEditingId(null);
       setFormData({ 
         description: "", 
@@ -54,6 +58,10 @@ export default function IncomeClient({ initialIncomes, categories }: { initialIn
         categoryId: categories.length > 0 ? categories[0].id : "", 
         note: "" 
       });
+      setRepeatMode("");
+      setFixedFrequency("Mensal");
+      setInstallmentsCount("2");
+      setInstallmentsPeriod("Meses");
     }
     setIsModalOpen(true);
   };
@@ -74,6 +82,10 @@ export default function IncomeClient({ initialIncomes, categories }: { initialIn
       date: new Date(formData.date + "T12:00:00"), // Evitar problemas de timezone
       categoryId: formData.categoryId,
       note: formData.note || undefined,
+      repeatMode: !editingId ? repeatMode : undefined,
+      fixedFrequency: (!editingId && repeatMode === "fixed") ? fixedFrequency : undefined,
+      installmentsCount: (!editingId && repeatMode === "installments") ? parseInt(installmentsCount) : undefined,
+      installmentsPeriod: (!editingId && repeatMode === "installments") ? installmentsPeriod : undefined
     };
 
     if (editingId) {
@@ -251,6 +263,96 @@ export default function IncomeClient({ initialIncomes, categories }: { initialIn
                   onChange={(e) => setFormData({...formData, note: e.target.value})} 
                 />
               </div>
+
+              {!editingId && (
+                <>
+                  <div style={{ width: "100%", height: "1px", backgroundColor: "rgba(0,0,0,0.03)", marginBottom: "1.5rem" }}></div>
+                  
+                  <div style={{ marginBottom: "2rem" }}>
+                    <label style={{ display: "block", fontSize: "0.875rem", color: "var(--text-muted)", marginBottom: "0.75rem", fontWeight: 500 }}>Repetir Lançamento?</label>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                      
+                      {/* Fixed */}
+                      <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", color: "var(--foreground)", fontSize: "0.9rem", cursor: "pointer" }}>
+                        <input 
+                          type="radio" 
+                          name="repeatIncome" 
+                          checked={repeatMode === "fixed"}
+                          onChange={() => setRepeatMode("fixed")}
+                          style={{ width: "18px", height: "18px", accentColor: "var(--primary)" }} 
+                        />
+                        é uma receita fixa (Assinatura/Salário)
+                      </label>
+                      
+                      {repeatMode === "fixed" && (
+                        <div style={{ paddingLeft: "1.75rem", marginBottom: "0.5rem", marginTop: "0.25rem" }}>
+                          <select 
+                            style={{ 
+                              width: "100%", padding: "0.6rem 0.75rem", 
+                              border: "1px solid var(--primary)", borderRadius: "4px", 
+                              outline: "none", fontSize: "0.95rem", 
+                              backgroundColor: "white", color: "var(--foreground)", fontWeight: 500
+                            }}
+                            value={fixedFrequency}
+                            onChange={(e) => setFixedFrequency(e.target.value)}
+                          >
+                            <option value="Anual">Anual</option>
+                            <option value="Semestral">Semestral</option>
+                            <option value="Mensal">Mensal</option>
+                            <option value="Quinzenal">Quinzenal</option>
+                            <option value="Semanal">Semanal</option>
+                          </select>
+                        </div>
+                      )}
+
+                      {/* Installments */}
+                      <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", color: "var(--foreground)", fontSize: "0.9rem", cursor: "pointer" }}>
+                        <input 
+                          type="radio" 
+                          name="repeatIncome" 
+                          checked={repeatMode === "installments"}
+                          onChange={() => setRepeatMode("installments")}
+                          style={{ width: "18px", height: "18px", accentColor: "var(--primary)" }} 
+                        />
+                        é uma receita parcelada em
+                      </label>
+
+                      {repeatMode === "installments" && (
+                        <div style={{ paddingLeft: "1.75rem", marginBottom: "0.5rem", marginTop: "0.25rem" }}>
+                          <div style={{ display: "flex", gap: "1rem" }}>
+                            <select 
+                              style={{ flex: 1, padding: "0.6rem 0.75rem", border: "1px solid var(--border)", borderRadius: "4px", backgroundColor: "white", color: "var(--foreground)", fontWeight: 500 }}
+                              value={installmentsCount}
+                              onChange={(e) => setInstallmentsCount(e.target.value)}
+                            >
+                              {Array.from({ length: 120 }, (_, i) => i + 1).map(n => <option key={n} value={n}>{n}</option>)}
+                            </select>
+                            
+                            <select 
+                              style={{ flex: 1, padding: "0.6rem 0.75rem", border: "1px solid var(--border)", borderRadius: "4px", backgroundColor: "white", color: "var(--foreground)", fontWeight: 500 }}
+                              value={installmentsPeriod}
+                              onChange={(e) => setInstallmentsPeriod(e.target.value)}
+                            >
+                              <option value="Meses">Meses</option>
+                              <option value="Semanas">Semanas</option>
+                              <option value="Dias">Dias</option>
+                            </select>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* No Repeat */}
+                      {repeatMode !== "" && (
+                        <div style={{ marginTop: "0.5rem" }}>
+                          <button type="button" onClick={() => setRepeatMode("")} style={{ background: "none", border: "none", color: "var(--danger)", cursor: "pointer", fontSize: "0.85rem", textDecoration: "underline" }}>
+                            Cancelar repetição
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
 
               <div style={{ display: "flex", justifyContent: "flex-end", gap: "1rem", marginTop: "2rem" }}>
                 <button type="button" className="btn" onClick={closeModal}>Cancelar</button>

@@ -59,3 +59,27 @@ export async function deleteAccount(id: string) {
     return { success: false, error: "Falha ao excluir conta. Verifique se existem transações vinculadas." };
   }
 }
+
+export async function transferBalance(sourceId: string, destId: string, amount: number) {
+  const userId = await getCurrentUserId();
+  if (!userId) return { success: false, error: "Não autorizado" };
+
+  try {
+    await prisma.$transaction([
+      prisma.account.update({
+        where: { id: sourceId, userId },
+        data: { balance: { decrement: amount } }
+      }),
+      prisma.account.update({
+        where: { id: destId, userId },
+        data: { balance: { increment: amount } }
+      })
+    ]);
+
+    revalidatePath("/contas");
+    revalidatePath("/");
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: "Falha ao realizar transferência." };
+  }
+}

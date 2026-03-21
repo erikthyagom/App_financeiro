@@ -25,7 +25,11 @@ export async function getDashboardData(month?: number, year?: number) {
       where: { userId, date: { gte: startDate, lte: endDate } },
     }),
     prisma.expense.findMany({
-      where: { userId, date: { gte: startDate, lte: endDate } },
+      where: { 
+        userId, 
+        date: { gte: startDate, lte: endDate },
+        paymentMethod: { not: "INVOICE_PAYMENT" }
+      },
       include: { category: true },
     }),
     prisma.account.findMany({ where: { userId } }),

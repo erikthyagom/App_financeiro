@@ -32,22 +32,27 @@ export default function NewExpenseModal({ isOpen, onClose, onSubmit, accounts, c
   if (!isOpen) return null;
 
   const handleSubmit = async () => {
-    if (!description || !amount || (!accountId && accounts.length === 0) || !categoryId) {
+    if (!description || !amount || !accountId || !categoryId) {
       alert("Preencha todos os campos obrigatórios");
       return;
     }
     
     setIsLoading(true);
-    // Para simplificar, estamos assumindo que accountId pode ser uma conta ou cartão
-    // Na action, podemos determinar se é de fato cartão ou conta.
-    // Aqui usaremos 'PIX' como default, e pegaremos a primeira conta caso não precise de selecão detalhada neste MVP (ou podemos separar selects de conta e cartao)
-    // No screenshot, o menu permite selecionar a conta.
+    
+    // Check if the selected ID belongs to a credit card
+    const isCreditCard = creditCards.some(c => c.id === accountId);
+    const finalAccountId = isCreditCard ? undefined : accountId;
+    const finalCreditCardId = isCreditCard ? accountId : undefined;
+    const finalPaymentMethod = isCreditCard ? "CREDIT" : "PIX";
+
     await onSubmit({
       description,
       amount: parseFloat(amount),
       date: new Date(date + "T12:00:00"),
       categoryId,
-      paymentMethod: "PIX", 
+      paymentMethod: finalPaymentMethod, 
+      accountId: finalAccountId,
+      creditCardId: finalCreditCardId,
       repeatMode,
       fixedFrequency: repeatMode === "fixed" ? fixedFrequency : undefined,
       installmentsCount: repeatMode === "installments" ? parseInt(installmentsCount) : undefined,

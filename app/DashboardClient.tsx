@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ArrowUpCircle, ArrowDownCircle, Wallet, PieChart, Info, CreditCard, Target, Plus, X, Layers } from "lucide-react";
@@ -48,6 +48,22 @@ export default function DashboardClient({ initialData, initialMonth, initialYear
   const [month, setMonth] = useState(initialMonth);
   const [year, setYear] = useState(initialYear);
   const [showGoalModal, setShowGoalModal] = useState(false);
+  const [greeting, setGreeting] = useState("Olá");
+  const [greetingIcon, setGreetingIcon] = useState("👋");
+
+  useEffect(() => {
+    const hour = new Date().getHours();
+    if (hour >= 0 && hour < 12) {
+      setGreeting("Bom dia");
+      setGreetingIcon("☀️");
+    } else if (hour >= 12 && hour < 18) {
+      setGreeting("Boa tarde");
+      setGreetingIcon("☀️");
+    } else {
+      setGreeting("Boa noite");
+      setGreetingIcon("🌙");
+    }
+  }, []);
   const [goalForm, setGoalForm] = useState({ name: "", targetAmount: "", currentAmount: "" });
   const [goalLoading, setGoalLoading] = useState(false);
 
@@ -160,10 +176,10 @@ export default function DashboardClient({ initialData, initialMonth, initialYear
         
         {/* Left Side: Overview */}
         <div style={{ flex: "1 1 350px", padding: "2rem" }}>
-          <p style={{ color: "var(--text-muted)", fontSize: "0.875rem", marginBottom: "0.25rem" }}>Boa tarde,</p>
+          <p style={{ color: "var(--text-muted)", fontSize: "0.875rem", marginBottom: "0.25rem" }}>{greeting},</p>
           <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "2rem" }}>
             <h2 style={{ fontSize: "1.5rem", fontWeight: 700 }}>{initialData.userName}!</h2>
-            <span style={{ fontSize: "1.5rem" }}>👋</span>
+            <span style={{ fontSize: "1.5rem" }}>{greetingIcon}</span>
           </div>
 
           <div style={{ display: "flex", gap: "3rem", flexWrap: "wrap" }}>

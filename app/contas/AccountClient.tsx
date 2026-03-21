@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Edit2, Trash2, X, Wallet } from "lucide-react";
-import { createAccount, updateAccount, deleteAccount } from "../actions/account";
+import { Plus, Edit2, Trash2, X, Wallet, ArrowRightLeft } from "lucide-react";
+import { createAccount, updateAccount, deleteAccount, transferBalance } from "../actions/account";
 
 type Account = {
   id: string;
@@ -15,6 +15,9 @@ export default function AccountClient({ initialAccounts }: { initialAccounts: Ac
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   
+  const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
+  const [transferData, setTransferData] = useState({ sourceId: "", destId: "", amount: "" });
+
   const [formData, setFormData] = useState({
     name: "",
     balance: "",
@@ -74,6 +77,21 @@ export default function AccountClient({ initialAccounts }: { initialAccounts: Ac
     setLoading(false);
   };
 
+  const handleTransferSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!transferData.sourceId || !transferData.destId || !transferData.amount) return;
+    if (transferData.sourceId === transferData.destId) return alert("As contas de origem e destino devem ser diferentes.");
+
+    setLoading(true);
+    const res = await transferBalance(transferData.sourceId, transferData.destId, parseFloat(transferData.amount));
+    if (res.success) {
+      window.location.reload();
+    } else {
+      alert(res.error);
+    }
+    setLoading(false);
+  };
+
   const handleDelete = async (id: string) => {
     if (confirm("Tem certeza que deseja excluir esta conta?")) {
       const res = await deleteAccount(id);
@@ -89,9 +107,14 @@ export default function AccountClient({ initialAccounts }: { initialAccounts: Ac
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem" }}>
         <h1 className="page-title" style={{ marginBottom: 0 }}>Contas</h1>
-        <button className="btn btn-primary" onClick={() => openModal()}>
-          <Plus size={18} /> Adicionar Conta
-        </button>
+        <div style={{ display: "flex", gap: "1rem" }}>
+          <button className="btn" style={{ backgroundColor: "#f1f5f9", color: "var(--foreground)" }} onClick={() => setIsTransferModalOpen(true)}>
+            <ArrowRightLeft size={18} /> Transferir
+          </button>
+          <button className="btn btn-primary" onClick={() => openModal()}>
+            <Plus size={18} /> Adicionar Conta
+          </button>
+        </div>
       </div>
 
       <div className="card" style={{ marginBottom: "2rem", display: "inline-block", padding: "1rem 2rem" }}>
@@ -179,6 +202,54 @@ export default function AccountClient({ initialAccounts }: { initialAccounts: Ac
                 <button type="button" className="btn" onClick={closeModal}>Cancelar</button>
                 <button type="submit" className="btn btn-primary" disabled={loading}>
                   {loading ? "Salvando..." : "Salvar"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {isTransferModalOpen && (
+        <div style={{
+          position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: "rgba(0,0,0,0.5)", display: "flex",
+          alignItems: "center", justifyContent: "center", zIndex: 100
+        }}>
+          <div className="card" style={{ width: "100%", maxWidth: "450px", position: "relative" }}>
+            <button 
+              onClick={() => setIsTransferModalOpen(false)}
+              style={{ position: "absolute", top: "1rem", right: "1rem", background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)" }}
+            >
+              <X size={20} />
+            </button>
+            <h2 style={{ marginBottom: "1.5rem" }}>Transferência entre Contas</h2>
+            
+            <form onSubmit={handleTransferSubmit}>
+              <div className="form-group">
+                <label className="form-label">De qual conta vai sair?</label>
+                <select className="input" value={transferData.sourceId} onChange={e => setTransferData({...transferData, sourceId: e.target.value})} required>
+                  <option value="" disabled>Selecione a origem</option>
+                  {accounts.map(acc => <option key={acc.id} value={acc.id}>{acc.name} (R$ {acc.balance.toFixed(2)})</option>)}
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Para qual conta vai entrar?</label>
+                <select className="input" value={transferData.destId} onChange={e => setTransferData({...transferData, destId: e.target.value})} required>
+                  <option value="" disabled>Selecione o destino</option>
+                  {accounts.map(acc => <option key={acc.id} value={acc.id}>{acc.name} (R$ {acc.balance.toFixed(2)})</option>)}
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Valor (R$)</label>
+                <input type="number" step="0.01" className="input" value={transferData.amount} onChange={e => setTransferData({...transferData, amount: e.target.value})} required />
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "1rem", marginTop: "2rem" }}>
+                <button type="button" className="btn" onClick={() => setIsTransferModalOpen(false)}>Cancelar</button>
+                <button type="submit" className="btn btn-primary" style={{ backgroundColor: "var(--primary)" }} disabled={loading}>
+                  {loading ? "Transferindo..." : "Confirmar Transferência"}
                 </button>
               </div>
             </form>
