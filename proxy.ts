@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 import { verifyJWT } from "@/lib/jwt";
 
 // Rotas que não precisam de autenticação
-const publicRoutes = ["/login", "/register"];
+const publicRoutes = ["/login", "/register", "/reset-password"];
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;

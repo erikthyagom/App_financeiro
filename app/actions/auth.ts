@@ -5,6 +5,11 @@ import bcrypt from "bcryptjs";
 import { signJWT, verifyJWT } from "@/lib/jwt";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { Resend } from "resend";
+import crypto from "crypto";
+
+// Não há problema se a key estiver nula no dev local até o usuário configurar o .env
+const resend = new Resend(process.env.RESEND_API_KEY || "re_dummy_key");
 
 export async function login(formData: FormData) {
   const email = formData.get("email") as string;
@@ -139,4 +144,93 @@ export async function getCurrentUser() {
 
   const payload = await verifyJWT(token);
   return payload as { id: string, name: string, email: string } | null;
+}
+
+export async function requestPasswordReset(email: string) {
+  const user = await prisma.user.findUnique({ where: { email } });
+  
+  if (!user) {
+    // Para depuração temporal, vamos retornar o erro real
+    return { success: false, error: "Este e-mail não foi encontrado no banco de dados do App." }; 
+  }
+
+  const token = crypto.randomBytes(32).toString("hex");
+  const expires = new Date(Date.now() + 1000 * 60 * 60);
+
+  // Clear previous tokens
+  await prisma.passwordResetToken.deleteMany({
+    where: { email }
+  });
+
+  await prisma.passwordResetToken.create({
+    data: {
+      email,
+      token,
+      expires
+    }
+  });
+
+  const resetLink = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/reset-password?token=${token}`;
+
+  try {
+    const res = await resend.emails.send({
+      from: "onboarding@resend.dev",
+      to: email,
+      subject: "Recuperação de Senha - FinApp",
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
+          <div style="background-color: #10b981; padding: 20px; text-align: center;">
+            <h1 style="color: white; margin: 0; font-size: 24px;">FinApp</h1>
+          </div>
+          <div style="padding: 30px; background-color: white;">
+            <h2 style="color: #0f172a; margin-top: 0;">Recuperação de Senha</h2>
+            <p style="color: #334155; font-size: 16px; line-height: 1.5;">Olá <strong>${user.name}</strong>,</p>
+            <p style="color: #334155; font-size: 16px; line-height: 1.5;">Você solicitou a recuperação de senha. Clique no botão abaixo para criar uma nova senha:</p>
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${resetLink}" style="background-color: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px; display: inline-block;">Redefinir minha senha</a>
+            </div>
+            <p style="color: #64748b; font-size: 14px; margin-bottom: 0;">Se você não solicitou isso, pode ignorar este e-mail com segurança.</p>
+          </div>
+        </div>
+      `
+    });
+
+    if (res.error) {
+      console.error("Resend API Error:", res.error);
+      return { success: false, error: `Erro do Resend: ${res.error.message}` };
+    }
+
+    return { success: true };
+  } catch (error: any) {
+    console.error("Catch Error:", error);
+    return { success: false, error: "Erro geral ao conectar com a API de e-mail." };
+  }
+}
+
+export async function resetPassword(formData: FormData) {
+  const token = formData.get("token") as string;
+  const password = formData.get("password") as string;
+
+  if (!token || !password) return { success: false, error: "Preencha todos os campos." };
+
+  const resetToken = await prisma.passwordResetToken.findUnique({
+    where: { token }
+  });
+
+  if (!resetToken || resetToken.expires < new Date()) {
+    return { success: false, error: "Link de recuperação expirado ou inválido." };
+  }
+
+  const hashedPassword = await bcrypt.hash(password, 10);
+
+  await prisma.user.update({
+    where: { email: resetToken.email },
+    data: { password: hashedPassword }
+  });
+
+  await prisma.passwordResetToken.delete({
+    where: { id: resetToken.id }
+  });
+
+  return { success: true };
 }

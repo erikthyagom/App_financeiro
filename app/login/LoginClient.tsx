@@ -13,17 +13,30 @@ export default function LoginClient() {
   const [recoveryEmail, setRecoveryEmail] = useState("");
   const [recoveryLoading, setRecoveryLoading] = useState(false);
   const [recoverySent, setRecoverySent] = useState(false);
+  const [recoveryError, setRecoveryError] = useState("");
   const router = useRouter();
 
-  const handleRecoverySubmit = (e: React.FormEvent) => {
+  const handleRecoverySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!recoveryEmail.trim()) return;
     setRecoveryLoading(true);
-    // Simula uma chamada de API para recuperação de senha
-    setTimeout(() => {
+    setRecoveryError("");
+    
+    try {
+      const { requestPasswordReset } = await import("../actions/auth");
+      const res = await requestPasswordReset(recoveryEmail);
+      
+      if (res.error) {
+        setRecoveryError(res.error);
+      } else {
+        setRecoverySent(true);
+      }
+    } catch (err) {
+      console.error(err);
+      setRecoveryError("Erro ao tentar conectar com servidor de e-mail.");
+    } finally {
       setRecoveryLoading(false);
-      setRecoverySent(true);
-    }, 1500);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -136,6 +149,13 @@ export default function LoginClient() {
             ) : (
               <>
                 <p style={{ color: "var(--text-muted)", marginBottom: "1.5rem", fontSize: "0.875rem" }}>Digite seu email e enviaremos um link para resetar sua senha.</p>
+                
+                {recoveryError && (
+                  <div style={{ backgroundColor: "#fef2f2", color: "#b91c1c", padding: "0.75rem 1rem", borderRadius: "8px", marginBottom: "1.5rem", fontSize: "0.875rem", fontWeight: 500, border: "1px solid #fecaca" }}>
+                    {recoveryError}
+                  </div>
+                )}
+
                 <form onSubmit={handleRecoverySubmit}>
                   <div className="form-group" style={{ marginBottom: "1.5rem" }}>
                     <label className="form-label">Email</label>

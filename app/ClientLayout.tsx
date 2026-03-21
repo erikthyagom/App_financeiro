@@ -5,7 +5,7 @@ import Navbar from "@/components/Navbar";
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const isAuthPage = pathname === "/login" || pathname === "/register";
+  const isAuthPage = pathname === "/login" || pathname === "/register" || pathname === "/reset-password";
 
   return (
     <div className={isAuthPage ? "" : "layout-container"}>
