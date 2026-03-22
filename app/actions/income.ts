@@ -62,7 +62,7 @@ export async function createIncome(data: {
         }
         
         await tx.income.createMany({ data: incomesToCreate });
-        totalToAddToAccount = baseIncomeData.amount; // Total sum of installments
+        totalToAddToAccount = amountPerInstallment; // Only add the first installment to account now
       } else if (repeatMode === "fixed" && fixedFrequency) {
         const incomesToCreate = [];
         const baseDate = new Date(baseIncomeData.date);
@@ -86,7 +86,7 @@ export async function createIncome(data: {
         }
         
         await tx.income.createMany({ data: incomesToCreate });
-        totalToAddToAccount = baseIncomeData.amount * occurrences;
+        totalToAddToAccount = baseIncomeData.amount; // Only add the first occurrence to account now
       } else {
         await tx.income.create({ 
           data: { ...baseIncomeData, userId, accountId } 
