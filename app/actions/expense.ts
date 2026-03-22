@@ -43,7 +43,7 @@ export async function createExpense(data: {
       method !== "CREDITO" && method !== "INVOICE_PAYMENT";
 
     if (repeatMode === "installments" && installmentsCount && installmentsCount > 1) {
-      const expensesToCreate = [];
+      const expensesToCreate: any[] = [];
       const baseDate = new Date(baseExpenseData.date);
       const amountPerInstallment = baseExpenseData.amount / installmentsCount;
       
@@ -74,7 +74,7 @@ export async function createExpense(data: {
         }
       });
     } else if (repeatMode === "fixed" && fixedFrequency) {
-      const expensesToCreate = [];
+      const expensesToCreate: any[] = [];
       const baseDate = new Date(baseExpenseData.date);
       const occurrences = 12; // Project 12 occurrences into the future
       

@@ -115,14 +115,14 @@ export default function ExpenseClient({
       if (res.success) {
         window.location.reload();
       } else {
-        await alert(res.error, { type: "error" });
+        await alert(res.error || "Ocorreu um erro", { type: "error" });
       }
     } else {
       const res = await createExpense(payload);
       if (res.success) {
         window.location.reload();
       } else {
-        await alert(res.error, { type: "error" });
+        await alert(res.error || "Ocorreu um erro", { type: "error" });
       }
     }
     setLoading(false);
@@ -134,7 +134,7 @@ export default function ExpenseClient({
       if (res.success) {
         setExpenses(expenses.filter(e => e.id !== id));
       } else {
-        await alert(res.error, { type: "error" });
+        await alert(res.error || "Ocorreu um erro", { type: "error" });
       }
     }
   };
