@@ -3,13 +3,14 @@
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ArrowUpCircle, ArrowDownCircle, Wallet, PieChart, Info, CreditCard, Target, Plus, X, Layers } from "lucide-react";
+import { ArrowUpCircle, ArrowDownCircle, Wallet, PieChart, Info, CreditCard, Target, Plus, X, Layers, Eye, EyeOff } from "lucide-react";
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
 import { Doughnut } from "react-chartjs-2";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createGoal } from "@/app/actions/goal";
 import { createExpense } from "@/app/actions/expense";
+import { useDialog } from "@/components/DialogProvider";
 import NewExpenseModal from "@/components/NewExpenseModal";
 
 ChartJS.register(ArcElement, Tooltip, Legend);
@@ -29,6 +30,12 @@ type DashboardData = {
   userName: string;
 };
 
+type DashboardClientProps = {
+  initialData: DashboardData;
+  currentMonth: number;
+  currentYear: number;
+};
+
 const MONTHS = [
   "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
   "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
@@ -36,20 +43,22 @@ const MONTHS = [
 
 const generateColors = (count: number) => {
   const colors = [
-    "#4f46e5", "#6366f1", "#818cf8", "#a5b4fc", "#c7d2fe", 
-    "#10b981", "#34d399", "#6ee7b7", "#f59e0b", "#fbbf24", 
+    "#4f46e5", "#6366f1", "#818cf8", "#a5b4fc", "#c7d2fe",
+    "#10b981", "#34d399", "#6ee7b7", "#f59e0b", "#fbbf24",
     "#fcd34d", "#ef4444", "#f87171", "#fca5a5"
   ];
   return colors.slice(0, count);
 };
 
-export default function DashboardClient({ initialData, initialMonth, initialYear }: { initialData: DashboardData, initialMonth: number, initialYear: number }) {
+export default function DashboardClient({ initialData, currentMonth, currentYear }: DashboardClientProps) {
+  const { alert } = useDialog();
   const router = useRouter();
-  const [month, setMonth] = useState(initialMonth);
-  const [year, setYear] = useState(initialYear);
+  const [month, setMonth] = useState(currentMonth);
+  const [year, setYear] = useState(currentYear);
   const [showGoalModal, setShowGoalModal] = useState(false);
   const [greeting, setGreeting] = useState("Olá");
   const [greetingIcon, setGreetingIcon] = useState("👋");
+  const [showBalance, setShowBalance] = useState(true);
 
   useEffect(() => {
     const hour = new Date().getHours();
@@ -89,7 +98,7 @@ export default function DashboardClient({ initialData, initialMonth, initialYear
       setGoalForm({ name: "", targetAmount: "", currentAmount: "" });
       router.refresh();
     } else {
-      alert(result.error);
+      await alert(result.error || "Erro", { type: "error" });
     }
   };
 
@@ -98,7 +107,7 @@ export default function DashboardClient({ initialData, initialMonth, initialYear
     if (result.success) {
       router.refresh();
     } else {
-      alert(result.error);
+      await alert(result.error || "Erro", { type: "error" });
     }
   };
 
@@ -128,7 +137,7 @@ export default function DashboardClient({ initialData, initialMonth, initialYear
         titleFont: { family: 'Inter', size: 14 },
         bodyFont: { family: 'Inter', size: 14 },
         callbacks: {
-          label: function(context: any) {
+          label: function (context: any) {
             let label = context.label || '';
             if (label) label += ': ';
             if (context.parsed !== null) {
@@ -145,22 +154,22 @@ export default function DashboardClient({ initialData, initialMonth, initialYear
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem", flexWrap: "wrap", gap: "1rem" }}>
         <h1 className="page-title" style={{ marginBottom: 0 }}>Dashboard</h1>
-        
+
         <div style={{ display: "flex", gap: "1rem" }}>
-          <select 
-            className="select" 
+          <select
+            className="select"
             style={{ width: "auto", margin: 0, padding: "0.5rem 1rem", backgroundColor: "var(--surface)", border: "1px solid var(--border)", borderRadius: "8px" }}
-            value={month} 
+            value={month}
             onChange={(e) => handleFilterChange(parseInt(e.target.value), year)}
           >
             {MONTHS.map((m, i) => (
               <option key={i} value={i}>{m}</option>
             ))}
           </select>
-          <select 
-            className="select" 
+          <select
+            className="select"
             style={{ width: "auto", margin: 0, padding: "0.5rem 1rem", backgroundColor: "var(--surface)", border: "1px solid var(--border)", borderRadius: "8px" }}
-            value={year} 
+            value={year}
             onChange={(e) => handleFilterChange(month, parseInt(e.target.value))}
           >
             {[...Array(5)].map((_, i) => {
@@ -173,7 +182,7 @@ export default function DashboardClient({ initialData, initialMonth, initialYear
 
       {/* Top Section - Greeting and Quick Access */}
       <div className="card" style={{ display: "flex", flexWrap: "wrap", marginBottom: "2rem", padding: "0", overflow: "hidden" }}>
-        
+
         {/* Left Side: Overview */}
         <div style={{ flex: "1 1 350px", padding: "2rem" }}>
           <p style={{ color: "var(--text-muted)", fontSize: "0.875rem", marginBottom: "0.25rem" }}>{greeting},</p>
@@ -183,28 +192,28 @@ export default function DashboardClient({ initialData, initialMonth, initialYear
           </div>
 
           <div style={{ display: "flex", gap: "3rem", flexWrap: "wrap" }}>
-             <div>
-               <p style={{ color: "var(--text-muted)", fontSize: "0.75rem", fontWeight: 600, textTransform: "uppercase", marginBottom: "0.5rem" }}>Receitas no mês atual</p>
-               <p style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--success)" }}>
-                 {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(initialData.totalIncomes)}
-               </p>
-             </div>
-             <div>
-               <p style={{ color: "var(--text-muted)", fontSize: "0.75rem", fontWeight: 600, textTransform: "uppercase", marginBottom: "0.5rem" }}>Despesas no mês atual</p>
-               <p style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--danger)" }}>
-                 {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(initialData.totalExpenses)}
-               </p>
-             </div>
-             <div style={{ display: "flex", alignItems: "center", justifyContent: "center", border: "1px solid var(--border)", borderRadius: "8px", padding: "0.5rem", width: "40px", height: "40px", cursor: "pointer" }}>
-               <PieChart size={20} color="var(--text-muted)" />
-             </div>
+            <div>
+              <p style={{ color: "var(--text-muted)", fontSize: "0.75rem", fontWeight: 600, textTransform: "uppercase", marginBottom: "0.5rem" }}>Receitas no mês atual</p>
+              <p style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--success)" }}>
+                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(initialData.totalIncomes)}
+              </p>
+            </div>
+            <div>
+              <p style={{ color: "var(--text-muted)", fontSize: "0.75rem", fontWeight: 600, textTransform: "uppercase", marginBottom: "0.5rem" }}>Despesas no mês atual</p>
+              <p style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--danger)" }}>
+                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(initialData.totalExpenses)}
+              </p>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", border: "1px solid var(--border)", borderRadius: "8px", padding: "0.5rem", width: "40px", height: "40px", cursor: "pointer" }}>
+              <PieChart size={20} color="var(--text-muted)" />
+            </div>
           </div>
         </div>
 
         {/* Right Side: Quick Access */}
         <div style={{ flex: "1 1 350px", padding: "2rem", borderLeft: "1px solid var(--border)", display: "flex", flexDirection: "column", alignItems: "center", backgroundColor: "rgba(0,0,0,0.01)" }}>
           <p style={{ fontWeight: 600, marginBottom: "1.5rem", textAlign: "center", width: "100%" }}>Acesso rápido</p>
-          
+
           <div style={{ display: "flex", gap: "1.5rem", justifyContent: "center", flexWrap: "wrap" }}>
             {/* Action 1: Despesa */}
             <button onClick={() => setIsExpenseModalOpen(true)} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.75rem", background: "none", border: "none", cursor: "pointer", outline: "none" }}>
@@ -243,14 +252,131 @@ export default function DashboardClient({ initialData, initialMonth, initialYear
 
       {/* Bottom Layout - 4 Columns */}
       <div className="dashboard-grid">
-        
+        {/* Minhas Contas com Saldo Geral */}
+        <div className="card" style={{ display: "flex", flexDirection: "column" }}>
+
+          {/* Top part: Saldo Geral */}
+          <div style={{ paddingBottom: "1.5rem", borderBottom: "1px solid var(--border)", marginBottom: "1.5rem" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+              <div style={{ width: "4px", height: "40px", backgroundColor: "var(--danger)", borderRadius: "2px" }}></div>
+              <div>
+                <p style={{ fontSize: "0.875rem", color: "var(--text-muted)", marginBottom: "0.25rem" }}>Saldo geral</p>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                  <p style={{ fontSize: "1.25rem", fontWeight: 700, color: (initialData.accounts?.reduce((acc: number, curr: any) => acc + curr.balance, 0) || 0) >= 0 ? "var(--success)" : "var(--danger)" }}>
+                    {showBalance ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(initialData.accounts?.reduce((acc: number, curr: any) => acc + curr.balance, 0) || 0) : "R$ •••••"}
+                  </p>
+                  <button onClick={() => setShowBalance(!showBalance)} style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", outline: "none", color: "var(--text-muted)" }}>
+                    {showBalance ? <Eye size={18} /> : <EyeOff size={18} />}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
+            <h3 style={{ fontSize: "1.1rem", fontWeight: 600, color: "var(--foreground)" }}>Minhas contas</h3>
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem", flex: 1 }}>
+            {initialData.accounts?.length > 0 ? (
+              initialData.accounts.map((acc: any) => (
+                <div key={acc.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingBottom: "1rem", borderBottom: "1px solid var(--border)" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+                    <div style={{ width: "40px", height: "40px", borderRadius: "50%", backgroundColor: "var(--border)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <Wallet size={20} color="var(--foreground)" />
+                    </div>
+                    <div>
+                      <p style={{ fontSize: "0.95rem", fontWeight: 500, color: "var(--foreground)" }}>{acc.name}</p>
+                      <p style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>Conta manual</p>
+                    </div>
+                  </div>
+                  <p style={{ fontSize: "0.95rem", fontWeight: 600, color: acc.balance >= 0 ? "#115293" : "var(--danger)" }}>
+                    {showBalance ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(acc.balance) : "•••••"}
+                  </p>
+                </div>
+              ))
+            ) : (
+              <p style={{ fontSize: "0.875rem", color: "var(--text-muted)", textAlign: "center", marginTop: "2rem" }}>Nenhuma conta cadastrada.</p>
+            )}
+          </div>
+
+          <Link href="/contas" className="btn" style={{ width: "100%", marginTop: "1.5rem", border: "1px solid var(--border)", color: "var(--text-muted)", backgroundColor: "transparent", fontSize: "0.875rem", padding: "0.75rem", textAlign: "center", display: "block" }}>
+            Gerenciar contas
+          </Link>
+        </div>
+
+        {/* Meus Cartões */}
+        <div className="card" style={{ display: "flex", flexDirection: "column" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+              <div style={{ width: "4px", height: "20px", backgroundColor: "var(--primary)", borderRadius: "2px" }}></div>
+              <h3 style={{ fontSize: "1.1rem", fontWeight: 600, color: "var(--foreground)" }}>Meus Cartões</h3>
+            </div>
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem", flex: 1 }}>
+            {initialData.creditCards?.length > 0 ? (
+              initialData.creditCards.map((card: any) => {
+                const spent = card.expenses?.reduce((sum: number, exp: any) => sum + exp.amount, 0) || 0;
+
+                // Color mapping to match Organizze's feel
+                let logoBg = "var(--background)";
+                let logoColor = "var(--text-muted)";
+                const cardNameLower = card.name.toLowerCase();
+                if (cardNameLower.includes("nubank")) {
+                  logoBg = "#8a05be";
+                  logoColor = "white";
+                } else if (cardNameLower.includes("master") || cardNameLower.includes("mastercard")) {
+                  logoBg = "#ff5f00";
+                  logoColor = "white";
+                }
+
+                return (
+                  <div key={card.id} style={{ display: "flex", flexDirection: "column", paddingBottom: "1.25rem", borderBottom: "1px solid var(--border)" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+                        <div style={{ width: "36px", height: "36px", borderRadius: "8px", backgroundColor: logoBg, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          <CreditCard size={18} color={logoColor} />
+                        </div>
+                        <div>
+                          <p style={{ fontSize: "0.875rem", fontWeight: 600, color: "var(--foreground)" }}>{card.name}</p>
+                          <p style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>Cartão manual</p>
+                        </div>
+                      </div>
+                      <Link href={`/cartoes/${card.id}`} style={{ textDecoration: "none", fontSize: "0.75rem", color: "var(--success)", backgroundColor: "rgba(16, 185, 129, 0.1)", padding: "0.4rem 0.75rem", borderRadius: "4px", fontWeight: 600, transition: "background-color 0.2s" }}>
+                        Ver fatura
+                      </Link>
+                    </div>
+
+                    <div style={{ display: "flex", backgroundColor: "var(--surface)", padding: "1rem", borderRadius: "8px", justifyContent: "space-between", border: "1px solid var(--border)" }}>
+                      <div>
+                        <p style={{ fontSize: "0.7rem", color: "var(--text-muted)", textTransform: "none", marginBottom: "0.25rem" }}>Limite Disponível</p>
+                        <p style={{ fontSize: "0.875rem", fontWeight: 600, color: "var(--foreground)" }}>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(card.limit - spent)}</p>
+                      </div>
+                      <div style={{ textAlign: "right" }}>
+                        <p style={{ fontSize: "0.7rem", color: "var(--text-muted)", textTransform: "none", marginBottom: "0.25rem" }}>Fatura atual <span style={{ opacity: 0.7 }}>(Venc. {card.dueDay})</span></p>
+                        <p style={{ fontSize: "0.875rem", fontWeight: 600, color: "var(--foreground)" }}>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(spent)}</p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <p style={{ fontSize: "0.875rem", color: "var(--text-muted)", textAlign: "center", marginTop: "2rem" }}>Nenhum cartão cadastrado.</p>
+            )}
+          </div>
+
+          <Link href="/cartoes" className="btn" style={{ width: "100%", marginTop: "1.5rem", border: "1px solid var(--border)", color: "var(--text-muted)", backgroundColor: "transparent", fontSize: "0.875rem", padding: "0.75rem" }}>
+            Gerenciar cartões
+          </Link>
+        </div>
         {/* Gastos por Categoria */}
         <div className="card" style={{ display: "flex", flexDirection: "column" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "2rem" }}>
             <div style={{ width: "4px", height: "20px", backgroundColor: "var(--primary)", borderRadius: "2px" }}></div>
             <h3 style={{ fontSize: "1.1rem", fontWeight: 600, color: "var(--foreground)" }}>Gastos por Categoria</h3>
           </div>
-          
+
           {initialData.chartData.labels.length > 0 ? (
             <>
               <div style={{ height: "200px", display: "flex", justifyContent: "center", alignItems: "center", marginBottom: "2rem" }}>
@@ -276,91 +402,7 @@ export default function DashboardClient({ initialData, initialMonth, initialYear
           )}
         </div>
 
-        {/* Minhas Contas */}
-        <div className="card" style={{ display: "flex", flexDirection: "column" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-              <div style={{ width: "4px", height: "20px", backgroundColor: "var(--success)", borderRadius: "2px" }}></div>
-              <h3 style={{ fontSize: "1.1rem", fontWeight: 600, color: "var(--foreground)" }}>Minhas Contas</h3>
-            </div>
-          </div>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem", flex: 1 }}>
-            {initialData.accounts?.length > 0 ? (
-              initialData.accounts.map((acc: any) => (
-                <div key={acc.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingBottom: "1rem", borderBottom: "1px solid var(--border)" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-                    <div style={{ width: "32px", height: "32px", borderRadius: "8px", backgroundColor: "var(--background)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <Wallet size={16} color="var(--text-muted)" />
-                    </div>
-                    <div>
-                      <p style={{ fontSize: "0.875rem", fontWeight: 600, color: "var(--foreground)" }}>{acc.name}</p>
-                      <p style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>Conta corrente</p>
-                    </div>
-                  </div>
-                  <p style={{ fontSize: "0.875rem", fontWeight: 700, color: "var(--primary)" }}>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(acc.balance)}</p>
-                </div>
-              ))
-            ) : (
-              <p style={{ fontSize: "0.875rem", color: "var(--text-muted)", textAlign: "center", marginTop: "2rem" }}>Nenhuma conta cadastrada.</p>
-            )}
-          </div>
-          
-          <Link href="/contas" className="btn" style={{ width: "100%", marginTop: "1.5rem", border: "1px solid var(--border)", color: "var(--text-muted)", backgroundColor: "transparent", fontSize: "0.875rem", padding: "0.75rem" }}>
-            Gerenciar contas
-          </Link>
-        </div>
-
-        {/* Meus Cartões */}
-        <div className="card" style={{ display: "flex", flexDirection: "column" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-              <div style={{ width: "4px", height: "20px", backgroundColor: "var(--primary)", borderRadius: "2px" }}></div>
-              <h3 style={{ fontSize: "1.1rem", fontWeight: 600, color: "var(--foreground)" }}>Meus Cartões</h3>
-            </div>
-          </div>
-
-          <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem", flex: 1 }}>
-            {initialData.creditCards?.length > 0 ? (
-              initialData.creditCards.map((card: any) => {
-                const spent = card.expenses?.reduce((sum: number, exp: any) => sum + exp.amount, 0) || 0;
-                return (
-                  <div key={card.id} style={{ display: "flex", flexDirection: "column", paddingBottom: "1.25rem", borderBottom: "1px solid var(--border)" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-                        <div style={{ width: "32px", height: "32px", borderRadius: "8px", backgroundColor: "var(--background)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                          <CreditCard size={16} color="var(--text-muted)" />
-                        </div>
-                        <div>
-                          <p style={{ fontSize: "0.875rem", fontWeight: 600, color: "var(--foreground)" }}>{card.name}</p>
-                          <p style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>Cartão de crédito</p>
-                        </div>
-                      </div>
-                      <span style={{ fontSize: "0.75rem", color: "var(--success)", backgroundColor: "rgba(16, 185, 129, 0.1)", padding: "0.25rem 0.5rem", borderRadius: "12px", fontWeight: 600 }}>Ver fatura</span>
-                    </div>
-                    
-                    <div style={{ display: "flex", backgroundColor: "var(--background)", padding: "1rem", borderRadius: "8px", justifyContent: "space-between" }}>
-                      <div>
-                        <p style={{ fontSize: "0.7rem", color: "var(--text-muted)", textTransform: "uppercase", marginBottom: "0.25rem" }}>Limite Disponível</p>
-                        <p style={{ fontSize: "0.875rem", fontWeight: 600, color: "var(--foreground)" }}>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(card.limit - spent)}</p>
-                      </div>
-                      <div style={{ textAlign: "right" }}>
-                        <p style={{ fontSize: "0.7rem", color: "var(--text-muted)", textTransform: "uppercase", marginBottom: "0.25rem" }}>Fatura atual <span style={{ textTransform: "none", opacity: 0.7 }}>(Venc. {card.dueDay})</span></p>
-                        <p style={{ fontSize: "0.875rem", fontWeight: 600, color: "var(--foreground)" }}>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(spent)}</p>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })
-            ) : (
-              <p style={{ fontSize: "0.875rem", color: "var(--text-muted)", textAlign: "center", marginTop: "2rem" }}>Nenhum cartão cadastrado.</p>
-            )}
-          </div>
-          
-          <Link href="/cartoes" className="btn" style={{ width: "100%", marginTop: "1.5rem", border: "1px solid var(--border)", color: "var(--text-muted)", backgroundColor: "transparent", fontSize: "0.875rem", padding: "0.75rem" }}>
-            Gerenciar cartões
-          </Link>
-        </div>
 
         {/* Metas Financeiras */}
         <div className="card" style={{ display: "flex", flexDirection: "column" }}>
@@ -485,11 +527,11 @@ export default function DashboardClient({ initialData, initialMonth, initialYear
         </div>
       )}
 
-      <NewExpenseModal 
-        isOpen={isExpenseModalOpen} 
-        onClose={() => setIsExpenseModalOpen(false)} 
-        onSubmit={handleCreateExpense} 
-        accounts={initialData.accounts} 
+      <NewExpenseModal
+        isOpen={isExpenseModalOpen}
+        onClose={() => setIsExpenseModalOpen(false)}
+        onSubmit={handleCreateExpense}
+        accounts={initialData.accounts}
         creditCards={initialData.creditCards}
         categories={initialData.categories}
       />

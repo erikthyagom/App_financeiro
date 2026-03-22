@@ -5,8 +5,10 @@ import { Plus, Edit2, Trash2, X } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { createIncome, updateIncome, deleteIncome } from "../actions/income";
+import { useDialog } from "@/components/DialogProvider";
 
 type Category = { id: string; name: string };
+type Account = { id: string; name: string };
 type Income = {
   id: string;
   description: string;
@@ -15,9 +17,11 @@ type Income = {
   note: string | null;
   categoryId: string;
   category?: Category;
+  accountId?: string | null;
 };
 
-export default function IncomeClient({ initialIncomes, categories }: { initialIncomes: any[], categories: Category[] }) {
+export default function IncomeClient({ initialIncomes, categories, accounts }: { initialIncomes: Income[], categories: Category[], accounts: Account[] }) {
+  const { alert, confirm } = useDialog();
   const [incomes, setIncomes] = useState<Income[]>(initialIncomes);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -27,6 +31,7 @@ export default function IncomeClient({ initialIncomes, categories }: { initialIn
     amount: "",
     date: new Date().toISOString().split("T")[0],
     categoryId: "",
+    accountId: "",
     note: "",
   });
   
@@ -48,14 +53,17 @@ export default function IncomeClient({ initialIncomes, categories }: { initialIn
         amount: income.amount.toString(),
         date: new Date(income.date).toISOString().split("T")[0],
         categoryId: income.categoryId,
+        accountId: income.accountId || (accounts.length > 0 ? accounts[0].id : ""),
         note: income.note || "",
       });
+    } else {
       setEditingId(null);
       setFormData({ 
         description: "", 
         amount: "", 
         date: new Date().toISOString().split("T")[0], 
         categoryId: categories.length > 0 ? categories[0].id : "", 
+        accountId: accounts.length > 0 ? accounts[0].id : "",
         note: "" 
       });
       setRepeatMode("");
@@ -81,6 +89,7 @@ export default function IncomeClient({ initialIncomes, categories }: { initialIn
       amount: parseFloat(formData.amount),
       date: new Date(formData.date + "T12:00:00"), // Evitar problemas de timezone
       categoryId: formData.categoryId,
+      accountId: formData.accountId,
       note: formData.note || undefined,
       repeatMode: !editingId ? repeatMode : undefined,
       fixedFrequency: (!editingId && repeatMode === "fixed") ? fixedFrequency : undefined,
@@ -93,26 +102,26 @@ export default function IncomeClient({ initialIncomes, categories }: { initialIn
       if (res.success) {
         window.location.reload();
       } else {
-        alert(res.error);
+        await alert(res.error || "Erro", { type: "error" });
       }
     } else {
       const res = await createIncome(payload);
       if (res.success) {
         window.location.reload();
       } else {
-        alert(res.error);
+        await alert(res.error || "Erro", { type: "error" });
       }
     }
     setLoading(false);
   };
 
   const handleDelete = async (id: string, description: string) => {
-    if (confirm(`Tem certeza que deseja excluir a receita "${description}"?`)) {
+    if (await confirm(`Tem certeza que deseja excluir a receita "${description}"?`, { type: "error" })) {
       const res = await deleteIncome(id);
       if (res.success) {
         setIncomes(incomes.filter(i => i.id !== id));
       } else {
-        alert(res.error);
+        await alert(res.error || "Erro", { type: "error" });
       }
     }
   };
@@ -239,19 +248,36 @@ export default function IncomeClient({ initialIncomes, categories }: { initialIn
                 </div>
               </div>
 
-              <div className="form-group">
-                <label className="form-label">Categoria</label>
-                <select 
-                  className="select" 
-                  value={formData.categoryId} 
-                  onChange={(e) => setFormData({...formData, categoryId: e.target.value})}
-                  required
-                >
-                  <option value="" disabled>Selecione uma categoria</option>
-                  {categories.map(c => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
+              <div style={{ display: "flex", gap: "1rem" }}>
+                <div className="form-group" style={{ flex: 1 }}>
+                  <label className="form-label">Categoria</label>
+                  <select 
+                    className="select" 
+                    value={formData.categoryId} 
+                    onChange={(e) => setFormData({...formData, categoryId: e.target.value})}
+                    required
+                  >
+                    <option value="" disabled>Selecione uma categoria</option>
+                    {categories.map(c => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div className="form-group" style={{ flex: 1 }}>
+                  <label className="form-label">Conta de Destino</label>
+                  <select 
+                    className="select" 
+                    value={formData.accountId} 
+                    onChange={(e) => setFormData({...formData, accountId: e.target.value})}
+                    required
+                  >
+                    <option value="" disabled>Selecione uma conta</option>
+                    {accounts.map(acc => (
+                      <option key={acc.id} value={acc.id}>{acc.name}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
               
               <div className="form-group">

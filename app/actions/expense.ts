@@ -38,6 +38,10 @@ export async function createExpense(data: {
       ...baseExpenseData 
     } = data;
 
+    // Helper: deduct from account only for non-credit payments
+    const shouldDeductFromAccount = (method: string) =>
+      method !== "CREDITO" && method !== "INVOICE_PAYMENT";
+
     if (repeatMode === "installments" && installmentsCount && installmentsCount > 1) {
       const expensesToCreate = [];
       const baseDate = new Date(baseExpenseData.date);
@@ -58,8 +62,17 @@ export async function createExpense(data: {
           amount: amountPerInstallment
         });
       }
-      
-      await prisma.expense.createMany({ data: expensesToCreate });
+
+      await prisma.$transaction(async (tx) => {
+        await tx.expense.createMany({ data: expensesToCreate });
+        // For installments, deduct total from account once
+        if (baseExpenseData.accountId && shouldDeductFromAccount(baseExpenseData.paymentMethod)) {
+          await tx.account.update({
+            where: { id: baseExpenseData.accountId },
+            data: { balance: { decrement: baseExpenseData.amount } },
+          });
+        }
+      });
     } else if (repeatMode === "fixed" && fixedFrequency) {
       const expensesToCreate = [];
       const baseDate = new Date(baseExpenseData.date);
@@ -81,13 +94,33 @@ export async function createExpense(data: {
         });
       }
       
-      await prisma.expense.createMany({ data: expensesToCreate });
+      await prisma.$transaction(async (tx) => {
+        await tx.expense.createMany({ data: expensesToCreate });
+        // For fixed recurring, only deduct the first occurrence from account
+        if (baseExpenseData.accountId && shouldDeductFromAccount(baseExpenseData.paymentMethod)) {
+          await tx.account.update({
+            where: { id: baseExpenseData.accountId },
+            data: { balance: { decrement: baseExpenseData.amount } },
+          });
+        }
+      });
     } else {
-      await prisma.expense.create({ 
-        data: { ...baseExpenseData, userId } 
+      await prisma.$transaction(async (tx) => {
+        await tx.expense.create({ 
+          data: { ...baseExpenseData, userId } 
+        });
+        // Deduct from account if a non-credit payment and account is linked
+        if (baseExpenseData.accountId && shouldDeductFromAccount(baseExpenseData.paymentMethod)) {
+          await tx.account.update({
+            where: { id: baseExpenseData.accountId },
+            data: { balance: { decrement: baseExpenseData.amount } },
+          });
+        }
       });
     }
     revalidatePath("/despesas");
+    revalidatePath("/contas");
+    revalidatePath("/");
     return { success: true };
   } catch (error: any) {
     console.error("Erro ao criar despesa:", error);
@@ -108,17 +141,44 @@ export async function updateExpense(id: string, data: {
   const userId = await getCurrentUserId();
   if (!userId) return { success: false, error: "Não autorizado" };
 
+  const shouldDeductFromAccount = (method: string) =>
+    method !== "CREDITO" && method !== "INVOICE_PAYMENT";
+
   try {
     const { 
       repeatMode, fixedFrequency, installmentsCount, installmentsPeriod,
       ...baseExpenseData 
     } = data as any;
 
-    await prisma.expense.update({
-      where: { id, userId },
-      data: baseExpenseData,
+    await prisma.$transaction(async (tx) => {
+      // Fetch old expense to reverse its balance effect
+      const oldExpense = await tx.expense.findUnique({ where: { id, userId } });
+
+      await tx.expense.update({
+        where: { id, userId },
+        data: baseExpenseData,
+      });
+
+      // Reverse old account deduction
+      if (oldExpense?.accountId && shouldDeductFromAccount(oldExpense.paymentMethod)) {
+        await tx.account.update({
+          where: { id: oldExpense.accountId },
+          data: { balance: { increment: oldExpense.amount } },
+        });
+      }
+
+      // Apply new account deduction
+      if (baseExpenseData.accountId && shouldDeductFromAccount(baseExpenseData.paymentMethod)) {
+        await tx.account.update({
+          where: { id: baseExpenseData.accountId },
+          data: { balance: { decrement: baseExpenseData.amount } },
+        });
+      }
     });
+
     revalidatePath("/despesas");
+    revalidatePath("/contas");
+    revalidatePath("/");
     return { success: true };
   } catch (error: any) {
     console.error("Erro ao atualizar despesa:", error);
@@ -130,11 +190,27 @@ export async function deleteExpense(id: string) {
   const userId = await getCurrentUserId();
   if (!userId) return { success: false, error: "Não autorizado" };
 
+  const shouldDeductFromAccount = (method: string) =>
+    method !== "CREDITO" && method !== "INVOICE_PAYMENT";
+
   try {
-    await prisma.expense.delete({ 
-      where: { id, userId } 
+    await prisma.$transaction(async (tx) => {
+      const expense = await tx.expense.findUnique({ where: { id, userId } });
+
+      await tx.expense.delete({ where: { id, userId } });
+
+      // Refund amount back to account
+      if (expense?.accountId && shouldDeductFromAccount(expense.paymentMethod)) {
+        await tx.account.update({
+          where: { id: expense.accountId },
+          data: { balance: { increment: expense.amount } },
+        });
+      }
     });
+
     revalidatePath("/despesas");
+    revalidatePath("/contas");
+    revalidatePath("/");
     return { success: true };
   } catch (error) {
     return { success: false, error: "Failed to delete expense." };

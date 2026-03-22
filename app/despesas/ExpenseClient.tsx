@@ -5,6 +5,7 @@ import { Plus, Edit2, Trash2, X } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { createExpense, updateExpense, deleteExpense } from "../actions/expense";
+import { useDialog } from "@/components/DialogProvider";
 
 type Category = { id: string; name: string };
 type CreditCard = { id: string; name: string };
@@ -33,10 +34,11 @@ export default function ExpenseClient({
   categories, 
   creditCards 
 }: { 
-  initialExpenses: any[], 
+  initialExpenses: Expense[], 
   categories: Category[],
   creditCards: CreditCard[] 
 }) {
+  const { alert, confirm } = useDialog();
   const [expenses, setExpenses] = useState<Expense[]>(initialExpenses);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -93,7 +95,7 @@ export default function ExpenseClient({
     if (!formData.description || !formData.amount || !formData.categoryId || !formData.paymentMethod) return;
 
     if (formData.paymentMethod === "CREDITO" && !formData.creditCardId) {
-      alert("Selecione um cartão de crédito.");
+      await alert("Selecione um cartão de crédito.", { type: "warning" });
       return;
     }
 
@@ -113,26 +115,26 @@ export default function ExpenseClient({
       if (res.success) {
         window.location.reload();
       } else {
-        alert(res.error);
+        await alert(res.error, { type: "error" });
       }
     } else {
       const res = await createExpense(payload);
       if (res.success) {
         window.location.reload();
       } else {
-        alert(res.error);
+        await alert(res.error, { type: "error" });
       }
     }
     setLoading(false);
   };
 
   const handleDelete = async (id: string, description: string) => {
-    if (confirm(`Tem certeza que deseja excluir a despesa "${description}"?`)) {
+    if (await confirm(`Tem certeza que deseja excluir a despesa "${description}"?`, { type: "error" })) {
       const res = await deleteExpense(id);
       if (res.success) {
         setExpenses(expenses.filter(e => e.id !== id));
       } else {
-        alert(res.error);
+        await alert(res.error, { type: "error" });
       }
     }
   };

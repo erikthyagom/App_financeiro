@@ -7,8 +7,10 @@ import { ArrowLeft, ChevronLeft, ChevronRight, CheckCircle, Clock, AlertCircle }
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { payInvoice } from "@/app/actions/creditCard";
+import { useDialog } from "@/components/DialogProvider";
 
 export default function InvoiceDetailsClient({ invoiceData, accounts, currentMonth, currentYear, cardId }: { invoiceData: any, accounts: any[], currentMonth: number, currentYear: number, cardId: string }) {
+  const { alert } = useDialog();
   const router = useRouter();
   const [isPaying, setIsPaying] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState("");
@@ -35,7 +37,10 @@ export default function InvoiceDetailsClient({ invoiceData, accounts, currentMon
   };
 
   const handlePay = async () => {
-    if (!selectedAccount) return alert("Selecione uma conta origem");
+    if (!selectedAccount) {
+      await alert("Selecione uma conta origem", { type: "warning" });
+      return;
+    }
     setIsPaying(true);
     // pay current invoice total
     const result = await payInvoice(cardId, selectedAccount, invoiceData.totalAmount, new Date());
@@ -44,7 +49,7 @@ export default function InvoiceDetailsClient({ invoiceData, accounts, currentMon
       setShowPayModal(false);
       router.refresh();
     } else {
-      alert(result.error);
+      await alert(result.error || "Erro", { type: "error" });
     }
   };
 

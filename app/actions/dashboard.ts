@@ -32,23 +32,61 @@ export async function getDashboardData(month?: number, year?: number) {
       },
       include: { category: true },
     }),
-    prisma.account.findMany({ where: { userId } }),
+    prisma.account.findMany({ where: { userId }, orderBy: { name: "asc" } }),
     prisma.creditCard.findMany({
       where: { userId },
-      include: { expenses: { where: { date: { gte: startDate, lte: endDate } } } }
+      include: { expenses: { where: { date: { gte: startDate, lte: endDate } } } },
+      orderBy: { name: "asc" }
     }),
     prisma.goal.findMany({ where: { userId } }),
     prisma.user.findUnique({ where: { id: userId }, select: { name: true } }),
     prisma.category.findMany({ where: { userId } })
   ]);
 
+  const validExpenses = expenses.filter((expense: any) => {
+    if (expense.paymentMethod !== "CREDIT" || !expense.creditCardId) return true;
+    
+    const card = creditCards.find((c: any) => c.id === expense.creditCardId);
+    if (!card) return true;
+
+    const { closingDay, dueDay } = card;
+    const expenseDate = new Date(expense.date);
+    const expenseMonth = expenseDate.getMonth();
+    const expenseYear = expenseDate.getFullYear();
+    const expenseDay = expenseDate.getDate();
+
+    let invoiceMonth = expenseMonth;
+    let invoiceYear = expenseYear;
+
+    if (expenseDay > closingDay) {
+      invoiceMonth++;
+      if (invoiceMonth > 11) {
+        invoiceMonth = 0;
+        invoiceYear++;
+      }
+    }
+
+    let dueMonth = invoiceMonth;
+    let dueYear = invoiceYear;
+    if (dueDay < closingDay) {
+      dueMonth++;
+      if (dueMonth > 11) {
+        dueMonth = 0;
+        dueYear++;
+      }
+    }
+
+    const isDueFuture = dueYear > targetYear || (dueYear === targetYear && dueMonth > targetMonth);
+    return !isDueFuture; // Only include if it is NOT due in the future
+  });
+
   const totalIncomes = incomes.reduce((acc: number, curr: any) => acc + curr.amount, 0);
-  const totalExpenses = expenses.reduce((acc: number, curr: any) => acc + curr.amount, 0);
+  const totalExpenses = validExpenses.reduce((acc: number, curr: any) => acc + curr.amount, 0);
   const balance = totalIncomes - totalExpenses;
 
   // Group expenses by category for the chart
   const expensesByCategory: Record<string, number> = {};
-  expenses.forEach((expense: any) => {
+  validExpenses.forEach((expense: any) => {
     const catName = expense.category?.name || "Sem categoria";
     expensesByCategory[catName] = (expensesByCategory[catName] || 0) + expense.amount;
   });

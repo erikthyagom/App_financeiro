@@ -4,6 +4,7 @@ import { useState } from "react";
 import * as LucideIcons from "lucide-react";
 import { Plus, X } from "lucide-react";
 import { createCategory, updateCategory, deleteCategory } from "../actions/category";
+import { useDialog } from "@/components/DialogProvider";
 
 type Category = {
   id: string;
@@ -14,6 +15,7 @@ type Category = {
 };
 
 export default function CategoryClient({ initialCategories }: { initialCategories: Category[] }) {
+  const { alert, confirm } = useDialog();
   const [categories, setCategories] = useState(initialCategories);
   const [activeTab, setActiveTab] = useState<"EXPENSE" | "INCOME">("EXPENSE");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -49,23 +51,23 @@ export default function CategoryClient({ initialCategories }: { initialCategorie
         setCategories(categories.map(c => c.id === editingId ? { ...c, name } : c));
         closeModal();
       } else {
-        alert(res.error);
+        await alert(res.error || "Erro", { type: "error" });
       }
     } else {
       const res = await createCategory(name, activeTab);
       if (res.success) {
         window.location.reload(); 
       } else {
-        alert(res.error);
+        await alert(res.error || "Erro", { type: "error" });
       }
     }
     setLoading(false);
   };
 
   // Mocked archive functionality
-  const handleArchive = (id: string, e: React.MouseEvent) => {
+  const handleArchive = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (confirm("Tem certeza que deseja arquivar/excluir esta categoria?")) {
+    if (await confirm("Tem certeza que deseja arquivar/excluir esta categoria?", { type: "error" })) {
       deleteCategory(id).then(res => {
         if (res.success) setCategories(categories.filter(c => c.id !== id));
       });

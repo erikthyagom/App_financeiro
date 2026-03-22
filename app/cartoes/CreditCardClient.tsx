@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Plus, Edit2, Trash2, X, CreditCard as CardIcon } from "lucide-react";
 import { createCreditCard, updateCreditCard, deleteCreditCard } from "../actions/creditCard";
+import { useDialog } from "@/components/DialogProvider";
 import Link from "next/link";
 
 type CreditCard = {
@@ -14,6 +15,7 @@ type CreditCard = {
 };
 
 export default function CreditCardClient({ initialCards }: { initialCards: CreditCard[] }) {
+  const { alert, confirm } = useDialog();
   const [cards, setCards] = useState<CreditCard[]>(initialCards);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -67,26 +69,26 @@ export default function CreditCardClient({ initialCards }: { initialCards: Credi
         setCards(cards.map(c => c.id === editingId ? { ...c, ...payload } : c));
         closeModal();
       } else {
-        alert(res.error);
+        await alert(res.error || "Erro", { type: "error" });
       }
     } else {
       const res = await createCreditCard(payload);
       if (res.success) {
         window.location.reload();
       } else {
-        alert(res.error);
+        await alert(res.error || "Erro", { type: "error" });
       }
     }
     setLoading(false);
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm("Tem certeza que deseja excluir este cartão?")) {
+    if (await confirm("Tem certeza que deseja excluir este cartão?", { type: "error" })) {
       const res = await deleteCreditCard(id);
       if (res.success) {
         setCards(cards.filter(c => c.id !== id));
       } else {
-        alert(res.error);
+        await alert(res.error || "Erro", { type: "error" });
       }
     }
   };
@@ -108,16 +110,13 @@ export default function CreditCardClient({ initialCards }: { initialCards: Credi
         ) : (
           cards.map((card) => (
             <div key={card.id} className="card" style={{ position: "relative", overflow: "hidden" }}>
-              <div style={{ position: "absolute", top: "-20px", right: "-20px", opacity: 0.05 }}>
-                <CardIcon size={120} />
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "1rem" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "1rem", position: "relative", zIndex: 10 }}>
                 <h3 style={{ fontSize: "1.25rem", fontWeight: 600 }}>{card.name}</h3>
-                <div style={{ display: "flex", gap: "0.25rem" }}>
-                  <button className="btn" style={{ padding: "0.3rem", backgroundColor: "transparent", color: "var(--text-muted)" }} onClick={() => openModal(card)}>
+                <div style={{ display: "flex", gap: "0.25rem", background: "var(--background)", padding: "0.25rem", borderRadius: "8px" }}>
+                  <button className="btn" style={{ padding: "0.3rem", backgroundColor: "transparent", color: "var(--text-muted)", border: "none" }} onClick={() => openModal(card)}>
                     <Edit2 size={16} />
                   </button>
-                  <button className="btn btn-danger" style={{ padding: "0.3rem" }} onClick={() => handleDelete(card.id)}>
+                  <button className="btn btn-danger" style={{ padding: "0.3rem", backgroundColor: "transparent", border: "none", color: "var(--danger)" }} onClick={() => handleDelete(card.id)}>
                     <Trash2 size={16} />
                   </button>
                 </div>

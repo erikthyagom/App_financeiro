@@ -10,14 +10,16 @@ export const metadata = {
 
 export default async function DespesasPage() {
   const expenses = await getExpenses();
-  const categories = await getCategories();
+  const allCategories = await getCategories();
   const creditCards = await getCreditCards();
   
+  const expenseCategories = allCategories.filter((c: any) => c.type === "EXPENSE");
+
   return (
     <div>
       <ExpenseClient 
         initialExpenses={expenses} 
-        categories={categories} 
+        categories={expenseCategories} 
         creditCards={creditCards} 
       />
     </div>

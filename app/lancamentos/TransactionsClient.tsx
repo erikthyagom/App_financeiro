@@ -6,6 +6,7 @@ import { ptBR } from "date-fns/locale";
 import { ChevronLeft, ChevronRight, Trash2, ArrowUpCircle, ArrowDownCircle, CheckCircle, Clock } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { deleteTransaction } from "../actions/transactions";
+import { useDialog } from "@/components/DialogProvider";
 
 type Transaction = {
   id: string;
@@ -25,7 +26,8 @@ type TransactionsData = {
 };
 
 export default function TransactionsClient({ initialData, currentMonth, currentYear }: { initialData: TransactionsData, currentMonth: number, currentYear: number }) {
-  const router = useRouter();
+  const { alert, confirm } = useDialog();
+  const router = useRouter();  
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
 
   const handlePrevMonth = () => {
@@ -49,14 +51,14 @@ export default function TransactionsClient({ initialData, currentMonth, currentY
   };
 
   const handleDelete = async (id: string, type: "INCOME"| "EXPENSE") => {
-    if (!confirm("Tem certeza que deseja deletar este lançamento?")) return;
+    if (!await confirm("Tem certeza que deseja deletar este lançamento?", { type: "error" })) return;
     setIsDeleting(id);
     const res = await deleteTransaction(id, type);
     setIsDeleting(null);
     if (res.success) {
       router.refresh();
     } else {
-      alert(res.error);
+      await alert(res.error || "Erro", { type: "error" });
     }
   };
 

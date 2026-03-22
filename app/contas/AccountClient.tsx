@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Plus, Edit2, Trash2, X, Wallet, ArrowRightLeft } from "lucide-react";
 import { createAccount, updateAccount, deleteAccount, transferBalance } from "../actions/account";
+import { useDialog } from "@/components/DialogProvider";
 
 type Account = {
   id: string;
@@ -11,6 +12,7 @@ type Account = {
 };
 
 export default function AccountClient({ initialAccounts }: { initialAccounts: Account[] }) {
+  const { alert, confirm } = useDialog();
   const [accounts, setAccounts] = useState<Account[]>(initialAccounts);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -64,14 +66,14 @@ export default function AccountClient({ initialAccounts }: { initialAccounts: Ac
         setAccounts(accounts.map(a => a.id === editingId ? { ...a, ...payload } : a));
         closeModal();
       } else {
-        alert(res.error);
+        await alert(res.error || "Erro", { type: "error" });
       }
     } else {
       const res = await createAccount(payload);
       if (res.success) {
         window.location.reload();
       } else {
-        alert(res.error);
+        await alert(res.error || "Erro", { type: "error" });
       }
     }
     setLoading(false);
@@ -80,25 +82,28 @@ export default function AccountClient({ initialAccounts }: { initialAccounts: Ac
   const handleTransferSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!transferData.sourceId || !transferData.destId || !transferData.amount) return;
-    if (transferData.sourceId === transferData.destId) return alert("As contas de origem e destino devem ser diferentes.");
+    if (transferData.sourceId === transferData.destId) {
+      await alert("As contas de origem e destino devem ser diferentes.", { type: "warning" });
+      return;
+    }
 
     setLoading(true);
     const res = await transferBalance(transferData.sourceId, transferData.destId, parseFloat(transferData.amount));
     if (res.success) {
       window.location.reload();
     } else {
-      alert(res.error);
+      await alert(res.error || "Erro", { type: "error" });
     }
     setLoading(false);
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm("Tem certeza que deseja excluir esta conta?")) {
+    if (await confirm("Tem certeza que deseja excluir esta conta?", { type: "error" })) {
       const res = await deleteAccount(id);
       if (res.success) {
         setAccounts(accounts.filter(a => a.id !== id));
       } else {
-        alert(res.error);
+        await alert(res.error || "Erro", { type: "error" });
       }
     }
   };
@@ -132,16 +137,13 @@ export default function AccountClient({ initialAccounts }: { initialAccounts: Ac
         ) : (
           accounts.map((account) => (
             <div key={account.id} className="card" style={{ position: "relative", overflow: "hidden" }}>
-              <div style={{ position: "absolute", top: "-20px", right: "-20px", opacity: 0.05 }}>
-                <Wallet size={120} />
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "1rem" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "1rem", position: "relative", zIndex: 10 }}>
                 <h3 style={{ fontSize: "1.25rem", fontWeight: 600 }}>{account.name}</h3>
-                <div style={{ display: "flex", gap: "0.25rem" }}>
-                  <button className="btn" style={{ padding: "0.3rem", backgroundColor: "transparent", color: "var(--text-muted)" }} onClick={() => openModal(account)}>
+                <div style={{ display: "flex", gap: "0.25rem", background: "var(--background)", padding: "0.25rem", borderRadius: "8px" }}>
+                  <button className="btn" style={{ padding: "0.3rem", backgroundColor: "transparent", color: "var(--text-muted)", border: "none" }} onClick={() => openModal(account)}>
                     <Edit2 size={16} />
                   </button>
-                  <button className="btn btn-danger" style={{ padding: "0.3rem" }} onClick={() => handleDelete(account.id)}>
+                  <button className="btn btn-danger" style={{ padding: "0.3rem", backgroundColor: "transparent", border: "none", color: "var(--danger)" }} onClick={() => handleDelete(account.id)}>
                     <Trash2 size={16} />
                   </button>
                 </div>

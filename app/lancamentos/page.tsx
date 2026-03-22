@@ -5,8 +5,10 @@ export default async function LancamentosPage(props: { searchParams: Promise<{ m
   const searchParams = await props.searchParams;
   
   const now = new Date();
-  const month = searchParams.month ? parseInt(searchParams.month) : now.getMonth();
-  const year = searchParams.year ? parseInt(searchParams.year) : now.getFullYear();
+  const parsedMonth = parseInt(searchParams.month || "");
+  const parsedYear = parseInt(searchParams.year || "");
+  const month = !isNaN(parsedMonth) ? parsedMonth : now.getMonth();
+  const year = !isNaN(parsedYear) ? parsedYear : now.getFullYear();
 
   const data = await getAllTransactions(month, year);
 
